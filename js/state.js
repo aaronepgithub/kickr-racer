@@ -24,4 +24,5 @@ export const state = {
     lastFirebaseUpdateTime: 0,
     lastFirebaseUpdateDistance: 0,
     firebaseQuotaMet: false,
+    elapsedTime: 0,
 };

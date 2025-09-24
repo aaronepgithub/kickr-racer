@@ -29,4 +29,5 @@ export const DOMElements = {
     debugUsedOffset: document.getElementById('debug-used-offset'),
     powerOffsetInput: document.getElementById('power-offset-input'),
     toggleDebugBtn: document.getElementById('toggle-debug-btn'),
+    elapsedTimeDisplay: document.getElementById('elapsed-time-display'),
 };

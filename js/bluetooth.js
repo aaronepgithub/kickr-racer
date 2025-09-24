@@ -73,39 +73,46 @@ export const BluetoothController = {
             const hex = Array.from(rawBytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
             DOMElements.debugRawHex.textContent = hex;
 
-            if (value.byteLength < 4) {
-                console.warn('Notification too short to parse.');
-                return;
-            }
+            const flags = value.getUint16(0, true);
+            // Correct flag for Instantaneous Power is bit 6 (0x0040)
+            const powerFieldPresent = (flags & 0x0040) !== 0;
 
-            // For Wahoo Kickr, the instantaneous power is usually at offset 2.
-            // It's a 16-bit signed integer.
-            const powerOffset = 2;
-            const power = value.getInt16(powerOffset, true);
+            if (powerFieldPresent) {
+                let offset = 2; // Start after the 2-byte flags field.
+                // The following fields are all uint16 (2 bytes) unless specified otherwise
+                if (flags & 0x0002) offset += 2; // Average Speed
+                if (flags & 0x0004) offset += 2; // Instantaneous Cadence
+                if (flags & 0x0008) offset += 2; // Average Cadence
+                if (flags & 0x0010) offset += 4; // Total Distance (uint32)
+                if (flags & 0x0020) offset += 2; // Resistance Level
 
-            // Sanity check the power value.
-            if (power >= 0 && power < 4000) {
-                state.power = power;
-                UIController.updatePower();
-                DOMElements.debugParsedPower.textContent = power;
-                DOMElements.debugUsedOffset.textContent = powerOffset;
-            } else {
-                // If the value is out of range, try the user-provided offset as a fallback.
-                const userOffset = parseInt(DOMElements.powerOffsetInput.value, 10);
-                if (!isNaN(userOffset) && userOffset !== powerOffset && userOffset < value.byteLength - 1) {
-                    const fallbackPower = value.getInt16(userOffset, true);
-                    if (fallbackPower >= 0 && fallbackPower < 4000) {
-                        state.power = fallbackPower;
+                if (offset + 1 < value.byteLength) {
+                    const power = value.getInt16(offset, true);
+                    if (power >= 0 && power < 4000) {
+                        state.power = power;
                         UIController.updatePower();
-                        DOMElements.debugParsedPower.textContent = `${fallbackPower} (fallback offset ${userOffset})`;
-                        DOMElements.debugUsedOffset.textContent = userOffset;
-                        return;
+                        DOMElements.debugParsedPower.textContent = `${power} (spec-based)`;
+                        DOMElements.debugUsedOffset.textContent = offset;
+                        return; // Successfully parsed
                     }
                 }
-
-                console.warn(`Parsed power value of ${power} at offset ${powerOffset} is out of the expected range.`);
-                DOMElements.debugParsedPower.textContent = `Out of range: ${power}`;
             }
+
+            // Fallback to user-configurable offset if spec-based parsing fails or is not available
+            const userOffset = parseInt(DOMElements.powerOffsetInput.value, 10);
+            if (!isNaN(userOffset) && userOffset < value.byteLength - 1) {
+                const fallbackPower = value.getInt16(userOffset, true);
+                if (fallbackPower >= 0 && fallbackPower < 4000) {
+                    state.power = fallbackPower;
+                    UIController.updatePower();
+                    DOMElements.debugParsedPower.textContent = `${fallbackPower} (fallback offset ${userOffset})`;
+                    DOMElements.debugUsedOffset.textContent = userOffset;
+                    return;
+                }
+            }
+
+            console.warn('Unable to parse power value from notification.');
+            DOMElements.debugParsedPower.textContent = 'n/a';
 
         } catch (err) {
             console.error('Error parsing indoor bike data:', err);

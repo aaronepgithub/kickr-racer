@@ -28,16 +28,21 @@ function gameLoop() {
             }
         }
 
-        // Only accumulate distance if the race has started
-        if (state.raceStarted && state.speed > 0) {
-            const previousDistance = state.distanceCovered;
-            const distanceThisFrame = Math.min(0.1, (state.speed / 3600) * deltaTime); // distance in miles
-            state.distanceCovered = Math.min(state.totalDistance, state.distanceCovered + distanceThisFrame);
-            UIController.updateDistance();
+        // Only accumulate distance and time if the race has started
+        if (state.raceStarted) {
+            state.elapsedTime += deltaTime;
+            UIController.updateElapsedTime();
 
-            // Check if the race was just finished
-            if (previousDistance < state.totalDistance && state.distanceCovered >= state.totalDistance) {
-                FirebaseController.updatePlayerState(true); // Force a final update
+            if (state.speed > 0) {
+                const previousDistance = state.distanceCovered;
+                const distanceThisFrame = Math.min(0.1, (state.speed / 3600) * deltaTime); // distance in miles
+                state.distanceCovered = Math.min(state.totalDistance, state.distanceCovered + distanceThisFrame);
+                UIController.updateDistance();
+
+                // Check if the race was just finished
+                if (previousDistance < state.totalDistance && state.distanceCovered >= state.totalDistance) {
+                    FirebaseController.updatePlayerState(true); // Force a final update
+                }
             }
         }
 
