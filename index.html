@@ -51,23 +51,6 @@
                 </div>
             </div>
 
-            <!-- Debug Panel (shows raw bytes + parsed power offset) -->
-            <div id="debug-panel" class="hidden mt-4 bg-gray-800 p-3 rounded-lg text-sm">
-                <div class="flex justify-between items-center mb-2">
-                    <p class="font-semibold text-cyan-300">Bluetooth Debug</p>
-                    <div class="flex items-center space-x-2">
-                        <label class="text-gray-400">Offset</label>
-                        <input id="power-offset-input" type="number" min="0" value="2" class="bg-gray-700 text-white w-20 p-1 rounded text-center">
-                        <button id="toggle-debug-btn" class="bg-gray-600 hover:bg-gray-500 text-white py-1 px-2 rounded">Hide</button>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 gap-1 text-left">
-                    <div><span class="text-gray-400">Last raw bytes:</span> <code id="debug-raw-hex" class="text-yellow-300">—</code></div>
-                    <div><span class="text-gray-400">Parsed power:</span> <span id="debug-parsed-power" class="text-yellow-300">—</span></div>
-                    <div><span class="text-gray-400">Used offset:</span> <span id="debug-used-offset" class="text-yellow-300">2</span></div>
-                </div>
-            </div>
-
             <!-- Pre-Race Controls -->
             <div id="pre-race-controls" class="space-y-4">
                 <div class="flex flex-wrap justify-center items-center gap-4">

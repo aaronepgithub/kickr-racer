@@ -69,10 +69,6 @@ export const BluetoothController = {
     handleData(event) {
         try {
             const value = event.target.value; // This is a DataView
-            const rawBytes = new Uint8Array(value.buffer);
-            const hex = Array.from(rawBytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
-            DOMElements.debugRawHex.textContent = hex;
-
             const flags = value.getUint16(0, true);
             // Correct flag for Instantaneous Power is bit 6 (0x0040)
             const powerFieldPresent = (flags & 0x0040) !== 0;
@@ -91,28 +87,12 @@ export const BluetoothController = {
                     if (power >= 0 && power < 4000) {
                         state.power = power;
                         UIController.updatePower();
-                        DOMElements.debugParsedPower.textContent = `${power} (spec-based)`;
-                        DOMElements.debugUsedOffset.textContent = offset;
                         return; // Successfully parsed
                     }
                 }
             }
 
-            // Fallback to user-configurable offset if spec-based parsing fails or is not available
-            const userOffset = parseInt(DOMElements.powerOffsetInput.value, 10);
-            if (!isNaN(userOffset) && userOffset < value.byteLength - 1) {
-                const fallbackPower = value.getInt16(userOffset, true);
-                if (fallbackPower >= 0 && fallbackPower < 4000) {
-                    state.power = fallbackPower;
-                    UIController.updatePower();
-                    DOMElements.debugParsedPower.textContent = `${fallbackPower} (fallback offset ${userOffset})`;
-                    DOMElements.debugUsedOffset.textContent = userOffset;
-                    return;
-                }
-            }
-
             console.warn('Unable to parse power value from notification.');
-            DOMElements.debugParsedPower.textContent = 'n/a';
 
         } catch (err) {
             console.error('Error parsing indoor bike data:', err);
