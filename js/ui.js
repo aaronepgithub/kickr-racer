@@ -83,6 +83,14 @@ export const UIController = {
     updateTotalDistance() {
         DOMElements.totalDistanceDisplay.textContent = `${state.totalDistance.toFixed(2)} mi`;
     },
+    updateElapsedTime() {
+        const totalSeconds = Math.floor(state.elapsedTime);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        DOMElements.elapsedTimeDisplay.textContent =
+            `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    },
     startCountdown() {
         if (state.countdownInterval) clearInterval(state.countdownInterval);
         DOMElements.countdownSection.classList.remove('hidden');
