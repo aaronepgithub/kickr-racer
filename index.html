@@ -282,7 +282,7 @@
             async createRace() {
                 if (!this.db || !state.gpxData) return;
                 try {
-                    const startTime = new Date(Date.now() + 60 * 1000); // Default 1 minute from now
+                    const startTime = new Date(Date.now() + 5 * 1000); // Default 1 minute from now
                     const docRef = await addDoc(collection(this.db, `artifacts/${appId}/public/data/races`), {
                         gpx: JSON.stringify(state.gpxData),
                         createdAt: serverTimestamp(),
@@ -932,4 +932,5 @@
     </script>
 </body>
 </html>
+
 
