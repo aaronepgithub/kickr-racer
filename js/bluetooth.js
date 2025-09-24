@@ -98,19 +98,6 @@ export const BluetoothController = {
                 }
             }
 
-            // Fallback to user-configurable offset if spec-based parsing fails or is not available
-            const userOffset = parseInt(DOMElements.powerOffsetInput.value, 10);
-            if (!isNaN(userOffset) && userOffset < value.byteLength - 1) {
-                const fallbackPower = value.getInt16(userOffset, true);
-                if (fallbackPower >= 0 && fallbackPower < 4000) {
-                    state.power = fallbackPower;
-                    UIController.updatePower();
-                    DOMElements.debugParsedPower.textContent = `${fallbackPower} (fallback offset ${userOffset})`;
-                    DOMElements.debugUsedOffset.textContent = userOffset;
-                    return;
-                }
-            }
-
             console.warn('Unable to parse power value from notification.');
             DOMElements.debugParsedPower.textContent = 'n/a';
 

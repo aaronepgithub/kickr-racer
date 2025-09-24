@@ -22,12 +22,5 @@ export const DOMElements = {
     countdownSection: document.getElementById('countdown-section'),
     countdownTimer: document.getElementById('countdown-timer'),
     startTimerControls: document.getElementById('start-timer-controls'),
-    // Debug elements
-    debugPanel: document.getElementById('debug-panel'),
-    debugRawHex: document.getElementById('debug-raw-hex'),
-    debugParsedPower: document.getElementById('debug-parsed-power'),
-    debugUsedOffset: document.getElementById('debug-used-offset'),
-    powerOffsetInput: document.getElementById('power-offset-input'),
-    toggleDebugBtn: document.getElementById('toggle-debug-btn'),
     elapsedTimeDisplay: document.getElementById('elapsed-time-display'),
 };

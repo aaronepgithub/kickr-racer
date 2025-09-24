@@ -128,10 +128,12 @@ export const FirebaseController = {
         // 4. The player has just finished the race.
         if (force || timeSinceLastUpdate > 60000 || distanceSinceLastUpdate >= 1 || isFinished) {
             const racerDocRef = doc(this.db, `artifacts/${appId}/public/data/races`, state.raceId, "racers", state.userId);
+                const averageSpeed = state.elapsedTime > 0 ? (state.distanceCovered / (state.elapsedTime / 3600)) : 0;
             const data = {
                 id: state.userId,
                 distance: state.distanceCovered,
-                speed: state.speed,
+                    speed: state.speed, // Keep instantaneous speed for other purposes if needed
+                    averageSpeed: averageSpeed,
                 lastUpdate: serverTimestamp(),
                 finished: isFinished,
             };

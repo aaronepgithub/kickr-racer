@@ -57,31 +57,46 @@ export const PhysicsController = {
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     },
-    // Solves for speed in m/s using an iterative approach
+    // Solves for speed in m/s using a binary search approach
     calculateSpeedMps(power, gradient, weightLbs) {
         const riderWeightKg = weightLbs * 0.453592;
         const totalMass = riderWeightKg + 9; // Add bike weight
-        const g = 9.81; // Gravity
+        const g = 9.81;
         const Crr = 0.005; // Coefficient of rolling resistance
         const rho = 1.225; // Air density
         const CdA = 0.32; // Drag coefficient * frontal area
 
         const grade = gradient / 100;
 
-        // Pre-calculate forces that don't depend on speed
         const forceGravity = totalMass * g * Math.sin(Math.atan(grade));
         const forceRolling = totalMass * g * Math.cos(Math.atan(grade)) * Crr;
 
-        // Iteratively solve for velocity (v)
-        // Power = (F_gravity + F_rolling) * v + (0.5 * rho * CdA) * v^3
-        let v = 5; // Initial guess for speed in m/s
-        for (let i = 0; i < 10; i++) { // 10 iterations is plenty for convergence
-            let v_squared = v * v;
-            let f_v = (forceGravity + forceRolling) * v + (0.5 * rho * CdA) * v_squared * v - power;
-            let f_prime_v = (forceGravity + forceRolling) + (1.5 * rho * CdA) * v_squared;
-            v = v - f_v / f_prime_v;
-            v = Math.max(0, v); // Speed cannot be negative
+        // This function calculates the power required to maintain a given speed 'v'.
+        // It's a monotonically increasing function for v >= 0.
+        const powerRequired = (v) => {
+            const f_drag = 0.5 * rho * CdA * v * v;
+            return (forceRolling + forceGravity + f_drag) * v;
+        };
+
+        // We use binary search to find the speed 'v' that requires the given 'power'.
+        let low = 0;
+        let high = 50; // 50 m/s is ~112 mph, a safe upper bound.
+
+        // If power required at max speed is less than rider power, they will accelerate.
+        // In our steady-state model, this means they are going at max speed.
+        if (powerRequired(high) < power) {
+            return high;
         }
-        return v;
+
+        for (let i = 0; i < 30; i++) { // 30 iterations for good precision
+            const mid = (low + high) / 2;
+            if (powerRequired(mid) < power) {
+                low = mid;
+            } else {
+                high = mid;
+            }
+        }
+
+        return high; // or low, they will be very close
     }
 };

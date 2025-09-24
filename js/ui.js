@@ -20,33 +20,6 @@ export const UIController = {
             }
         });
         window.addEventListener('resize', () => this.drawCourseProfile());
-
-        // Debug controls
-        if (DOMElements.powerOffsetInput) {
-            DOMElements.powerOffsetInput.value = state.trainer.powerOffset;
-            DOMElements.powerOffsetInput.addEventListener('change', (e) => {
-                const v = parseInt(e.target.value, 10);
-                if (!isNaN(v) && v >= 0) {
-                    state.trainer.powerOffset = v;
-                    if (DOMElements.debugUsedOffset) DOMElements.debugUsedOffset.textContent = String(v);
-                    console.log('Set preferred power offset to', v);
-                }
-            });
-        }
-        if (DOMElements.toggleDebugBtn && DOMElements.debugPanel) {
-            DOMElements.toggleDebugBtn.addEventListener('click', () => {
-                const isHidden = DOMElements.debugPanel.classList.contains('hidden');
-                if (isHidden) {
-                    DOMElements.debugPanel.classList.remove('hidden');
-                    DOMElements.toggleDebugBtn.textContent = 'Hide';
-                } else {
-                    DOMElements.debugPanel.classList.add('hidden');
-                    DOMElements.toggleDebugBtn.textContent = 'Show';
-                }
-            });
-            // show panel by default when in development
-            DOMElements.debugPanel.classList.remove('hidden');
-        }
     },
     handleFileUpload(event) {
         const file = event.target.files[0];
@@ -128,10 +101,11 @@ export const UIController = {
             const isSelf = racer.id === state.userId;
             const racerEl = document.createElement('div');
             racerEl.className = `p-3 rounded-lg flex justify-between items-center ${isSelf ? 'bg-cyan-800 border border-cyan-500' : 'bg-gray-700'}`;
+                    const speedToShow = racer.averageSpeed !== undefined ? racer.averageSpeed : racer.speed;
             racerEl.innerHTML = `
                 <p class="text-sm font-semibold truncate w-1/3">${isSelf ? 'You' : racer.id.substring(0,8)}...</p>
                 <p class="text-lg font-bold">${racer.distance.toFixed(2)} mi</p>
-                <p class="text-md">${racer.speed.toFixed(1)} mph</p>
+                        <p class="text-md">${speedToShow.toFixed(1)} mph (avg)</p>
             `;
             DOMElements.leaderboard.appendChild(racerEl);
         });
