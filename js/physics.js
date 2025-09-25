@@ -13,7 +13,11 @@ export const PhysicsController = {
             courseName = nameEl.textContent;
         }
 
-        for (let i = 0; i < trkpts.length; i++) {
+        // Limit the number of track points to prevent excessive data
+        const maxPoints = 5000;
+        const step = Math.max(1, Math.floor(trkpts.length / maxPoints));
+
+        for (let i = 0; i < trkpts.length; i += step) {
             const ele = trkpts[i].getElementsByTagName("ele")[0];
             if (ele) {
                  points.push({
@@ -25,9 +29,7 @@ export const PhysicsController = {
         }
 
         const routeData = [];
-        const checkpoints = [];
         let totalDistanceKm = 0;
-        let nextCheckpointMile = 1;
 
         for (let i = 0; i < points.length - 1; i++) {
             const p1 = points[i];
@@ -43,19 +45,10 @@ export const PhysicsController = {
                 gradient: isNaN(gradient) ? 0 : gradient,
                 ele: p1.ele,
             });
-
-            const endDistanceMiles = (totalDistanceKm + distanceKm) * 0.621371;
-            if (endDistanceMiles >= nextCheckpointMile) {
-                checkpoints.push({
-                    mile: nextCheckpointMile,
-                    distance: nextCheckpointMile, // distance in miles
-                });
-                nextCheckpointMile++;
-            }
-
             totalDistanceKm += distanceKm;
         }
-         if (points.length > 0) {
+
+        if (points.length > 0) {
             routeData.push({
                 startDistance: totalDistanceKm * 0.621371,
                 distance: 0,
@@ -64,10 +57,19 @@ export const PhysicsController = {
             });
         }
 
+        const totalDistanceMiles = totalDistanceKm * 0.621371;
+        const checkpoints = [];
+        if (totalDistanceMiles > 0) {
+            checkpoints.push({
+                mile: 0.5, // Represents the 50% mark
+                distance: totalDistanceMiles / 2,
+            });
+        }
+
         return {
             name: courseName,
             route: routeData,
-            totalDistance: totalDistanceKm * 0.621371,
+            totalDistance: totalDistanceMiles,
             checkpoints: checkpoints,
         };
     },

@@ -57,34 +57,28 @@ export const UIController = {
         if (!file) return;
 
         DOMElements.gpxFileName.textContent = file.name;
-        DOMElements.uploadCourseBtn.disabled = false;
 
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
+            DOMElements.gpxFileName.textContent = "Parsing...";
             const result = PhysicsController.parseGPX(e.target.result, file.name);
             if (result) {
-                state.course = result; // Temporarily store parsed data
+                DOMElements.gpxFileName.textContent = "Uploading...";
+                const courseId = await FirebaseController.uploadCourse(result);
+                if (courseId) {
+                    DOMElements.gpxFileName.textContent = "Uploaded!";
+                    await this.loadCourses();
+                    const courses = await FirebaseController.getCourses();
+                    const newCourse = courses.find(c => c.id === courseId);
+                    if(newCourse) this.selectCourse(newCourse);
+                } else {
+                    DOMElements.gpxFileName.textContent = "Upload failed.";
+                }
             } else {
                 DOMElements.gpxFileName.textContent = "Invalid GPX file";
-                DOMElements.uploadCourseBtn.disabled = true;
             }
         };
         reader.readAsText(file);
-    },
-
-    async uploadAndSelectCourse() {
-        if (!state.course) return;
-        DOMElements.uploadCourseBtn.disabled = true;
-        DOMElements.uploadCourseBtn.textContent = 'Uploading...';
-        const courseId = await FirebaseController.uploadCourse(state.course);
-        if (courseId) {
-            await this.loadCourses();
-            // Find and select the newly uploaded course
-            const courses = await FirebaseController.getCourses();
-            const newCourse = courses.find(c => c.id === courseId);
-            if(newCourse) this.selectCourse(newCourse);
-        }
-        DOMElements.uploadCourseBtn.textContent = 'Upload and Select Course';
     },
 
     startRace() {
@@ -169,7 +163,7 @@ export const UIController = {
         }, 1000);
     },
     drawCourseProfile() {
-         if (!state.gpxData || state.gpxData.length === 0) return;
+         if (!state.gpxData || state.gpxData.length === 0 || state.totalDistance === 0) return;
         const canvas = DOMElements.courseProfileCanvas;
         const ctx = canvas.getContext('2d');
 
