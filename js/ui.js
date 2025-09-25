@@ -8,7 +8,6 @@ export const UIController = {
     init() {
         DOMElements.connectBtn.addEventListener('click', () => BluetoothController.connect());
         DOMElements.gpxUpload.addEventListener('change', (event) => this.handleFileUpload(event));
-        DOMElements.uploadCourseBtn.addEventListener('click', () => this.uploadAndSelectCourse());
         DOMElements.startRaceBtn.addEventListener('click', () => this.startRace());
 
         this.loadCourses();
