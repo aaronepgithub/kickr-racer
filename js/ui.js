@@ -186,6 +186,10 @@ export const UIController = {
 
         ctx.clearRect(0, 0, width, height);
 
+        // Draw a solid background for the canvas
+        ctx.fillStyle = '#374151'; // bg-gray-700
+        ctx.fillRect(0, 0, width, height);
+
         ctx.beginPath();
         ctx.moveTo(0, height - (((elevations[0] - minEle) / eleRange) * (height - padding * 2) + padding));
         for (let i = 1; i < state.gpxData.length; i++) {
