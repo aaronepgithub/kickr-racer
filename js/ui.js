@@ -46,7 +46,6 @@ export const UIController = {
             selectedEl.classList.add('bg-cyan-700');
         }
 
-        this.updateTotalDistance();
         this.drawCourseProfile();
         this.displayRecordTimes();
         this.updateStartRaceButtonState();
@@ -144,9 +143,6 @@ export const UIController = {
     },
     updateGradient() {
         DOMElements.gradientDisplay.textContent = `${state.gradient.toFixed(1)} %`;
-    },
-    updateTotalDistance() {
-        DOMElements.totalDistanceDisplay.textContent = `${state.totalDistance.toFixed(2)} mi`;
     },
     updateElapsedTime() {
         const totalSeconds = Math.floor(state.elapsedTime);
