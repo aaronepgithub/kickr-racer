@@ -199,8 +199,8 @@ export const UIController = {
         ctx.closePath();
 
         const gradient = ctx.createLinearGradient(0, 0, 0, height);
-        gradient.addColorStop(0, 'rgba(45, 212, 191, 0.5)');
-        gradient.addColorStop(1, 'rgba(34, 41, 57, 0.1)');
+        gradient.addColorStop(0, 'rgba(250, 204, 21, 0.6)'); // Yellow-400 with 60% opacity
+        gradient.addColorStop(1, 'rgba(250, 204, 21, 0.1)'); // Yellow-400 with 10% opacity
         ctx.fillStyle = gradient;
         ctx.fill();
 
@@ -212,7 +212,7 @@ export const UIController = {
             const y = height - (((segment.ele - minEle) / eleRange) * (height - padding * 2) + padding);
             ctx.lineTo(x, y);
         }
-        ctx.strokeStyle = '#2dd4bf';
+        ctx.strokeStyle = '#FACC15'; // Yellow-400
         ctx.lineWidth = 2;
         ctx.stroke();
     },
