@@ -47,6 +47,18 @@
                 </div>
             </div>
 
+            <!-- Course Profile Display -->
+            <div id="course-profile-section" class="space-y-2 pt-4">
+                <h3 class="font-semibold mb-2 text-center">Course Profile</h3>
+                <div id="course-profile-container" class="relative w-full h-40 bg-gray-900 rounded-lg overflow-hidden">
+                    <canvas id="course-profile-canvas" class="w-full h-full"></canvas>
+                    <div id="course-profile-placeholder" class="absolute inset-0 flex items-center justify-center text-gray-500">
+                        <p>Select a course to see the elevation profile.</p>
+                    </div>
+                    <!-- Racer dots will be dynamically added here -->
+                </div>
+            </div>
+
             <!-- Pre-Race Setup -->
             <div id="pre-race-setup">
                 <!-- Connect & Name -->
@@ -117,15 +129,6 @@
                     <div class="bg-cyan-700 p-3 rounded-lg">
                         <p class="text-sm text-cyan-200">vs. Ghost</p>
                         <p id="ghost-diff-display" class="text-2xl font-bold">+0:00</p>
-                    </div>
-                </div>
-
-                <!-- Course Profile -->
-                <div>
-                    <h3 class="font-semibold mb-2 text-center">Course Profile</h3>
-                    <div id="course-profile-container" class="relative w-full h-40 bg-gray-900 rounded-lg overflow-hidden">
-                        <canvas id="course-profile-canvas" class="w-full h-full"></canvas>
-                        <!-- Racer dots will be dynamically added here -->
                     </div>
                 </div>
 

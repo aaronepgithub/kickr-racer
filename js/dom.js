@@ -28,6 +28,7 @@ export const DOMElements = {
     // Course Profile
     courseProfileContainer: document.getElementById('course-profile-container'),
     courseProfileCanvas: document.getElementById('course-profile-canvas'),
+    courseProfilePlaceholder: document.getElementById('course-profile-placeholder'),
 
     // Record Times
     recordTimesDisplay: document.getElementById('record-times-display'),

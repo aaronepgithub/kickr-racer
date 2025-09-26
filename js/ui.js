@@ -12,6 +12,7 @@ export const UIController = {
 
         this.loadCourses();
         this.updateStartRaceButtonState();
+        this.drawCourseProfile(); // Draw initial empty state
     },
 
     async loadCourses() {
@@ -162,9 +163,19 @@ export const UIController = {
         }, 1000);
     },
     drawCourseProfile() {
-         if (!state.gpxData || state.gpxData.length === 0 || state.totalDistance === 0) return;
+        const placeholder = DOMElements.courseProfilePlaceholder;
         const canvas = DOMElements.courseProfileCanvas;
         const ctx = canvas.getContext('2d');
+
+        if (!state.gpxData || state.gpxData.length === 0 || state.totalDistance === 0) {
+            // No course selected, show placeholder
+            placeholder.classList.remove('hidden');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            return;
+        }
+
+        // Course is selected, hide placeholder and draw
+        placeholder.classList.add('hidden');
 
         const dpr = window.devicePixelRatio || 1;
         const rect = canvas.getBoundingClientRect();
