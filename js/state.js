@@ -1,5 +1,6 @@
 export const state = {
     userId: null,
+
     racerName: '',
 
     // Course data
@@ -24,11 +25,14 @@ export const state = {
     nextCheckpointIndex: 0,
 
     // Trainer connection
+
     trainer: {
         device: null,
         controlCharacteristic: null,
         dataCharacteristic: null,
         connected: false,
+
         isSettingGradient: false,
     },
 };
+

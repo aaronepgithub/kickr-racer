@@ -1,6 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
 import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, getDoc, updateDoc, serverTimestamp, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
 
 import { firebaseConfig, appId } from './config.js';
 import { state } from './state.js';
@@ -12,10 +14,12 @@ export const FirebaseController = {
     auth: null,
 
     async init() {
+
         try {
             const app = initializeApp(firebaseConfig);
             this.db = getFirestore(app);
             this.auth = getAuth(app);
+
             await this.authenticate();
         } catch (error) {
             console.error("Firebase initialization failed:", error);

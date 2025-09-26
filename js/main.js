@@ -1,5 +1,7 @@
 import { state } from './state.js';
+
 import { DOMElements } from './dom.js';
+
 import { FirebaseController } from './firebase.js';
 import { BluetoothController } from './bluetooth.js';
 import { PhysicsController } from './physics.js';
@@ -8,10 +10,12 @@ import { UIController } from './ui.js';
 // --- MAIN GAME LOOP ---
 let lastUpdateTime = Date.now();
 
+
 function gameLoop() {
     const now = Date.now();
     const deltaTime = (now - lastUpdateTime) / 1000; // seconds
     lastUpdateTime = now;
+
 
     if (state.trainer.connected && state.raceStarted && state.gpxData) {
         // --- Physics and State Updates ---
@@ -71,6 +75,7 @@ function gameLoop() {
             };
             FirebaseController.saveRun(state.course.id, runData);
         }
+
     }
 
     requestAnimationFrame(gameLoop);
@@ -78,6 +83,7 @@ function gameLoop() {
 
 // --- INITIALIZATION ---
 function init() {
+
     UIController.init();
     FirebaseController.init().then(() => {
         UIController.loadCourses();
@@ -86,3 +92,4 @@ function init() {
 }
 
 init();
+

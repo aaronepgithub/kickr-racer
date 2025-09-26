@@ -8,6 +8,7 @@ export const UIController = {
     init() {
         DOMElements.connectBtn.addEventListener('click', () => BluetoothController.connect());
         DOMElements.gpxUpload.addEventListener('change', (event) => this.handleFileUpload(event));
+
         DOMElements.startRaceBtn.addEventListener('click', () => this.startRace());
 
         this.loadCourses();
@@ -52,11 +53,13 @@ export const UIController = {
         DOMElements.raceStatus.textContent = `${course.name} selected.`;
     },
 
+
     handleFileUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
 
         DOMElements.gpxFileName.textContent = file.name;
+
 
         const reader = new FileReader();
         reader.onload = async (e) => {
@@ -74,12 +77,14 @@ export const UIController = {
                 } else {
                     DOMElements.gpxFileName.textContent = "Upload failed.";
                 }
+
             } else {
                 DOMElements.gpxFileName.textContent = "Invalid GPX file";
             }
         };
         reader.readAsText(file);
     },
+
 
     startRace() {
         DOMElements.preRaceSetup.classList.add('hidden');
@@ -138,6 +143,7 @@ export const UIController = {
     updateGradient() {
         DOMElements.gradientDisplay.textContent = `${state.gradient.toFixed(1)} %`;
     },
+
     updateElapsedTime() {
         const totalSeconds = Math.floor(state.elapsedTime);
         const hours = Math.floor(totalSeconds / 3600);
@@ -147,6 +153,7 @@ export const UIController = {
             `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     },
     startCountdown() {
+
         let count = 10;
         DOMElements.countdownTimer.textContent = `00:${count}`;
         state.countdownInterval = setInterval(() => {
@@ -177,6 +184,7 @@ export const UIController = {
         // Course is selected, hide placeholder and draw
         placeholder.classList.add('hidden');
 
+
         const dpr = window.devicePixelRatio || 1;
         const rect = canvas.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) return;
@@ -197,9 +205,11 @@ export const UIController = {
 
         ctx.clearRect(0, 0, width, height);
 
+
         // Draw a solid background for the canvas
         ctx.fillStyle = '#374151'; // bg-gray-700
         ctx.fillRect(0, 0, width, height);
+
 
         ctx.beginPath();
         ctx.moveTo(0, height - (((elevations[0] - minEle) / eleRange) * (height - padding * 2) + padding));
@@ -214,8 +224,10 @@ export const UIController = {
         ctx.closePath();
 
         const gradient = ctx.createLinearGradient(0, 0, 0, height);
+
         gradient.addColorStop(0, 'rgba(250, 204, 21, 0.6)'); // Yellow-400 with 60% opacity
         gradient.addColorStop(1, 'rgba(250, 204, 21, 0.1)'); // Yellow-400 with 10% opacity
+
         ctx.fillStyle = gradient;
         ctx.fill();
 
@@ -227,6 +239,7 @@ export const UIController = {
             const y = height - (((segment.ele - minEle) / eleRange) * (height - padding * 2) + padding);
             ctx.lineTo(x, y);
         }
+
         ctx.strokeStyle = '#FFFFFF'; // White
         ctx.lineWidth = 4;
         ctx.stroke();
@@ -282,3 +295,4 @@ export const UIController = {
         dot.style.left = `calc(${percentComplete * 100}% - 6px)`;
     }
 };
+

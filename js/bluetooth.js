@@ -98,10 +98,12 @@ export const BluetoothController = {
             console.error('Error parsing indoor bike data:', err);
         }
     },
+
     async setGradient(gradient) {
         if (!state.trainer.connected || !state.trainer.controlCharacteristic || state.trainer.isSettingGradient) return;
 
         state.trainer.isSettingGradient = true;
+
         gradient = Math.max(-10, Math.min(20, gradient));
         const gradientValue = Math.round(gradient * 100);
 
@@ -111,6 +113,7 @@ export const BluetoothController = {
         dataView.setInt16(1, 0, true); // Wind speed (0)
         dataView.setInt16(3, gradientValue, true); // Grade
 
+
         try {
             await state.trainer.controlCharacteristic.writeValue(command);
         } catch (err) {
@@ -118,5 +121,6 @@ export const BluetoothController = {
         } finally {
             state.trainer.isSettingGradient = false;
         }
+
     }
 };

@@ -1,11 +1,14 @@
 export const PhysicsController = {
+
      parseGPX(gpxString, fileName) {
+
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(gpxString, "text/xml");
         const points = [];
         const trkpts = xmlDoc.getElementsByTagName("trkpt");
 
         if (trkpts.length === 0) return null;
+
 
         let courseName = fileName.replace('.gpx', '');
         const nameEl = xmlDoc.getElementsByTagName("name")[0];
@@ -18,6 +21,7 @@ export const PhysicsController = {
         const step = Math.max(1, Math.floor(trkpts.length / maxPoints));
 
         for (let i = 0; i < trkpts.length; i += step) {
+
             const ele = trkpts[i].getElementsByTagName("ele")[0];
             if (ele) {
                  points.push({
@@ -37,18 +41,22 @@ export const PhysicsController = {
             const distanceKm = this.haversineDistance(p1, p2);
             const elevationChangeM = p2.ele - p1.ele;
             let gradient = (distanceKm > 0) ? (elevationChangeM / (distanceKm * 1000)) * 100 : 0;
+
             const startDistanceMiles = totalDistanceKm * 0.621371;
 
             routeData.push({
                 startDistance: startDistanceMiles,
                 distance: distanceKm * 0.621371,
+
                 gradient: isNaN(gradient) ? 0 : gradient,
                 ele: p1.ele,
             });
             totalDistanceKm += distanceKm;
         }
 
+
         if (points.length > 0) {
+
             routeData.push({
                 startDistance: totalDistanceKm * 0.621371,
                 distance: 0,
@@ -72,6 +80,7 @@ export const PhysicsController = {
             totalDistance: totalDistanceMiles,
             checkpoints: checkpoints,
         };
+
     },
     haversineDistance(p1, p2) {
         const R = 6371; // km
@@ -125,4 +134,6 @@ export const PhysicsController = {
 
         return high; // or low, they will be very close
     }
+
 };
+
