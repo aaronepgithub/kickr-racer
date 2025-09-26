@@ -34,75 +34,20 @@ function gameLoop() {
         UIController.updateElapsedTime();
         UIController.updateRacerDots();
 
-        // --- Ghost Position Calculation ---
-        if (state.course.recordRun && state.course.recordRun.checkpointTimes) {
-            const recordTimes = [{ percent: 0, time: 0, distance: 0 }, ...state.course.recordRun.checkpointTimes];
-            let ghostSegmentIndex = recordTimes.findIndex(ct => ct.time > state.elapsedTime) - 1;
-
-            if (ghostSegmentIndex === -2) { // Race finished for ghost
-                ghostSegmentIndex = recordTimes.length - 2;
-            }
-             if (ghostSegmentIndex < 0) {
-                 ghostSegmentIndex = 0;
-            }
-
-            if (ghostSegmentIndex < recordTimes.length - 1) {
-                const startCp = recordTimes[ghostSegmentIndex];
-                const endCp = recordTimes[ghostSegmentIndex + 1];
-                const timeInSegment = state.elapsedTime - startCp.time;
-                const segmentDuration = endCp.time - startCp.time;
-                const segmentDistance = endCp.distance - startCp.distance;
-
-                if (segmentDuration > 0) {
-                    const progressInSegment = timeInSegment / segmentDuration;
-                    state.ghostDistanceCovered = startCp.distance + (progressInSegment * segmentDistance);
-                } else {
-                     state.ghostDistanceCovered = startCp.distance;
-                }
-            } else {
-                // If ghost has finished, keep them at the end
-                state.ghostDistanceCovered = state.totalDistance;
-            }
-        }
-
-        // --- Checkpoint and Ghost Time Diff Logic ---
+        // --- Checkpoint and Ghost Logic ---
         const nextCheckpoint = state.course.checkpoints[state.nextCheckpointIndex];
         if (nextCheckpoint && state.distanceCovered >= nextCheckpoint.distance) {
-            state.checkpointTimes.push({
-                percent: nextCheckpoint.percent,
-                time: state.elapsedTime,
-                distance: nextCheckpoint.distance
-            });
-            state.nextCheckpointIndex++;
-        }
+            state.checkpointTimes.push({ mile: nextCheckpoint.mile, time: state.elapsedTime });
 
-        // Continuous ghost diff update
-        if (state.course.recordRun && state.course.recordRun.checkpointTimes.length > 0 && state.distanceCovered > 0) {
-            const recordTimes = [{ percent: 0, time: 0, distance: 0 }, ...state.course.recordRun.checkpointTimes];
-            let playerSegmentIndex = recordTimes.findIndex(ct => ct.distance > state.distanceCovered) - 1;
-            let ghostTimeAtPlayerDistance;
-
-            if (playerSegmentIndex === -2) { // Player is past the last checkpoint
-                ghostTimeAtPlayerDistance = state.course.recordRun.totalTime;
-            } else {
-                if (playerSegmentIndex < 0) {
-                    playerSegmentIndex = 0;
-                }
-                const startCp = recordTimes[playerSegmentIndex];
-                const endCp = recordTimes[playerSegmentIndex + 1];
-                const distanceInSegment = endCp.distance - startCp.distance;
-                const playerDistanceIntoSegment = state.distanceCovered - startCp.distance;
-
-                if (distanceInSegment > 0) {
-                    const progressInSegment = playerDistanceIntoSegment / distanceInSegment;
-                    const timeInSegment = endCp.time - startCp.time;
-                    ghostTimeAtPlayerDistance = startCp.time + (progressInSegment * timeInSegment);
-                } else {
-                    ghostTimeAtPlayerDistance = startCp.time;
+            // Compare with ghost if a record run exists
+            if (state.course.recordRun && state.course.recordRun.checkpointTimes) {
+                const ghostCheckpoint = state.course.recordRun.checkpointTimes.find(ct => ct.mile === nextCheckpoint.mile);
+                if (ghostCheckpoint) {
+                    const timeDiff = state.elapsedTime - ghostCheckpoint.time;
+                    UIController.updateGhostDiff(timeDiff);
                 }
             }
-            const timeDiff = state.elapsedTime - ghostTimeAtPlayerDistance;
-            UIController.updateGhostDiff(timeDiff);
+            state.nextCheckpointIndex++;
         }
 
         // --- Gradient Updates ---
