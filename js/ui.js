@@ -216,8 +216,8 @@ export const UIController = {
             const y = height - (((segment.ele - minEle) / eleRange) * (height - padding * 2) + padding);
             ctx.lineTo(x, y);
         }
-        ctx.strokeStyle = '#FACC15'; // Yellow-400
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#FFFFFF'; // White
+        ctx.lineWidth = 4;
         ctx.stroke();
     },
     updateRacerDots() {

@@ -29,5 +29,6 @@ export const state = {
         controlCharacteristic: null,
         dataCharacteristic: null,
         connected: false,
+        isSettingGradient: false,
     },
 };

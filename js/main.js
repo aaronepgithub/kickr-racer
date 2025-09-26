@@ -47,15 +47,17 @@ function gameLoop() {
         }
 
         // --- Gradient Updates ---
-        let currentSegment = state.gpxData.find(s => state.distanceCovered >= s.startDistance && state.distanceCovered < (s.startDistance + s.distance));
-        if (currentSegment) {
-            const newGradient = currentSegment.gradient;
-            if (Math.abs(newGradient - state.gradient) > 0.1) {
-                 state.gradient = newGradient;
-                 BluetoothController.setGradient(state.gradient);
-                 UIController.updateGradient();
+        (async () => {
+            let currentSegment = state.gpxData.find(s => state.distanceCovered >= s.startDistance && state.distanceCovered < (s.startDistance + s.distance));
+            if (currentSegment) {
+                const newGradient = currentSegment.gradient;
+                if (Math.abs(newGradient - state.gradient) > 0.1) {
+                    state.gradient = newGradient;
+                    await BluetoothController.setGradient(state.gradient);
+                    UIController.updateGradient();
+                }
             }
-        }
+        })();
 
         // --- Finish Race Logic ---
         if (state.distanceCovered >= state.totalDistance) {
