@@ -1,26 +1,41 @@
 export const DOMElements = {
     connectBtn: document.getElementById('connect-btn'),
-    weightInput: document.getElementById('weight-input'),
-    gpxUpload: document.getElementById('gpx-upload'),
-    gpxFileName: document.getElementById('gpx-file-name'),
-    createRaceBtn: document.getElementById('create-race-btn'),
+
     bluetoothStatus: document.getElementById('bluetooth-status').querySelector('p:last-child'),
     raceStatus: document.getElementById('race-status').querySelector('p:last-child'),
-    userIdDisplay: document.getElementById('user-id-display').querySelector('p:last-child'),
+
+    // Pre-Race
+    preRaceSetup: document.getElementById('pre-race-setup'),
+    racerNameInput: document.getElementById('racer-name-input'),
+    courseList: document.getElementById('course-list'),
+    gpxUpload: document.getElementById('gpx-upload'),
+    gpxFileName: document.getElementById('gpx-file-name'),
+    uploadCourseBtn: document.getElementById('upload-course-btn'),
+    startRaceBtn: document.getElementById('start-race-btn'),
+
+    // Countdown
+    countdownSection: document.getElementById('countdown-section'),
+    countdownTimer: document.getElementById('countdown-timer'),
+
+    // Race Display
+    raceDisplay: document.getElementById('race-display'),
+
     powerDisplay: document.getElementById('power-display'),
     speedDisplay: document.getElementById('speed-display'),
     distanceDisplay: document.getElementById('distance-display'),
     gradientDisplay: document.getElementById('gradient-display'),
-    totalDistanceDisplay: document.getElementById('total-distance-display'),
-    leaderboard: document.getElementById('leaderboard'),
+
+    elapsedTimeDisplay: document.getElementById('elapsed-time-display'),
+    ghostDiffDisplay: document.getElementById('ghost-diff-display'),
+
+    // Course Profile
     courseProfileContainer: document.getElementById('course-profile-container'),
     courseProfileCanvas: document.getElementById('course-profile-canvas'),
-    shareLinkSection: document.getElementById('share-link-section'),
-    shareLinkInput: document.getElementById('share-link-input'),
-    copyLinkBtn: document.getElementById('copy-link-btn'),
-    preRaceControls: document.getElementById('pre-race-controls'),
-    countdownSection: document.getElementById('countdown-section'),
-    countdownTimer: document.getElementById('countdown-timer'),
-    startTimerControls: document.getElementById('start-timer-controls'),
-    elapsedTimeDisplay: document.getElementById('elapsed-time-display'),
+    courseProfilePlaceholder: document.getElementById('course-profile-placeholder'),
+
+    // Record Times
+    recordTimesDisplay: document.getElementById('record-times-display'),
+    recordHolderName: document.getElementById('record-holder-name'),
+    recordHolderTime: document.getElementById('record-holder-time'),
 };
+

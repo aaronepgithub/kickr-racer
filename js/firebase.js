@@ -1,6 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, getDoc, updateDoc, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, getDoc, updateDoc, serverTimestamp, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
 
 import { firebaseConfig, appId } from './config.js';
 import { state } from './state.js';
@@ -10,162 +12,88 @@ import { UIController } from './ui.js';
 export const FirebaseController = {
     db: null,
     auth: null,
-    init() {
+
+    async init() {
+
         try {
             const app = initializeApp(firebaseConfig);
             this.db = getFirestore(app);
             this.auth = getAuth(app);
-            setLogLevel('debug');
-            this.authenticate();
+
+            await this.authenticate();
         } catch (error) {
             console.error("Firebase initialization failed:", error);
             DOMElements.raceStatus.textContent = "Firebase Error";
-            DOMElements.raceStatus.className = "text-red-500 font-bold";
         }
     },
+
     authenticate() {
-        onAuthStateChanged(this.auth, async (user) => {
-            if (user) {
-                state.userId = user.uid;
-                DOMElements.userIdDisplay.textContent = state.userId;
-                console.log("Authenticated with user ID:", state.userId);
-
-                // Check if joining an existing race from URL
-                const urlParams = new URLSearchParams(window.location.search);
-                const raceIdFromUrl = urlParams.get('raceId');
-                if (raceIdFromUrl) {
-                    this.joinRace(raceIdFromUrl);
-                }
-
-            } else {
-               try {
-                   await signInAnonymously(this.auth);
-                   console.log("Signed in anonymously.");
-               } catch (error) {
-                   console.error("Anonymous sign-in failed:", error);
-               }
-            }
+        return signInAnonymously(this.auth).catch(error => {
+            console.error("Anonymous sign-in failed:", error);
         });
     },
-    async createRace() {
-        if (!this.db || !state.gpxData) return;
+
+    async getCourses() {
+        if (!this.db) return [];
         try {
-            const startTime = new Date(Date.now() + 5 * 1000); // Default 1 minute from now
-            const docRef = await addDoc(collection(this.db, `artifacts/${appId}/public/data/races`), {
-                gpx: JSON.stringify(state.gpxData),
-                createdAt: serverTimestamp(),
-                totalDistance: state.totalDistance,
-                creatorId: state.userId,
-                startTime: startTime,
-            });
-            state.raceId = docRef.id;
-            this.joinRace(state.raceId);
-            UIController.showShareLink(state.raceId);
+            const coursesCol = collection(this.db, `artifacts/${appId}/public/data/courses`);
+            const courseSnapshot = await getDocs(coursesCol);
+            const courseList = courseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            return courseList;
         } catch (e) {
-            console.error("Error creating race: ", e);
+            console.error("Error fetching courses: ", e);
+            return [];
         }
     },
-    async joinRace(raceId) {
-        if (!this.db || !state.userId) return;
-        state.raceId = raceId;
 
-        const raceDocRef = doc(this.db, `artifacts/${appId}/public/data/races`, raceId);
+    async uploadCourse(courseData) {
+        if (!this.db) return null;
+        try {
+            const docRef = await addDoc(collection(this.db, `artifacts/${appId}/public/data/courses`), {
+                name: courseData.name,
+                gpx: JSON.stringify(courseData.route),
+                totalDistance: courseData.totalDistance,
+                checkpoints: courseData.checkpoints,
+                createdAt: serverTimestamp(),
+                recordRun: null, // No record run initially
+            });
+            console.log("Course uploaded with ID: ", docRef.id);
+            return docRef.id;
+        } catch (e) {
+            console.error("Error uploading course: ", e);
+            return null;
+        }
+    },
 
-        // Listen for changes to the main race document (like startTime)
-        if (state.raceDocUnsubscribe) state.raceDocUnsubscribe();
-        state.raceDocUnsubscribe = onSnapshot(raceDocRef, (docSnap) => {
-             if (docSnap.exists()) {
-                const raceData = docSnap.data();
+    async saveRun(courseId, runData) {
+        if (!this.db) return;
 
-                if (!state.gpxData) { // Only load GPX once
-                   state.gpxData = JSON.parse(raceData.gpx);
-                   state.totalDistance = raceData.totalDistance;
-                   UIController.updateTotalDistance();
-                   UIController.drawCourseProfile();
-                }
-
-                state.raceStartTime = raceData.startTime.toDate();
-                UIController.startCountdown();
-
-                DOMElements.raceStatus.textContent = 'Race Joined';
-                DOMElements.raceStatus.className = 'text-green-400';
-                DOMElements.preRaceControls.classList.add('hidden');
-
-                if (raceData.creatorId === state.userId) {
-                    DOMElements.startTimerControls.classList.remove('hidden');
-                }
-
-                // Add self to the racers subcollection so others can see you
-                this.updatePlayerState();
-                // Listen for other racers
-                this.listenForRacers();
-
-            } else {
-                console.error("Race not found!");
-                DOMElements.raceStatus.textContent = "Race Not Found";
-                DOMElements.raceStatus.className = "text-red-500";
+        const courseRef = doc(this.db, `artifacts/${appId}/public/data/courses`, courseId);
+        try {
+            const courseSnap = await getDoc(courseRef);
+            if (!courseSnap.exists()) {
+                console.error("Course not found for saving run.");
+                return;
             }
-        });
-    },
-    async updateRaceStartTime(minutes) {
-        if (!this.db || !state.raceId) return;
-        const newStartTime = new Date(Date.now() + minutes * 60 * 1000);
-        const raceDocRef = doc(this.db, `artifacts/${appId}/public/data/races`, state.raceId);
-        await updateDoc(raceDocRef, { startTime: newStartTime });
-    },
-    updatePlayerState(force = false) {
-        if (!this.db || !state.userId || !state.raceId || state.firebaseQuotaMet) return;
 
-        const now = Date.now();
-        const timeSinceLastUpdate = now - state.lastFirebaseUpdateTime;
-        const distanceSinceLastUpdate = state.distanceCovered - state.lastFirebaseUpdateDistance;
-        const isFinished = state.distanceCovered >= state.totalDistance;
+            const courseData = courseSnap.data();
+            const currentRecord = courseData.recordRun;
 
-        // Update conditions:
-        // 1. Forced update (e.g., at the end of the race).
-        // 2. More than 60 seconds have passed.
-        // 3. More than 1 mile has been covered.
-        // 4. The player has just finished the race.
-        if (force || timeSinceLastUpdate > 60000 || distanceSinceLastUpdate >= 1 || isFinished) {
-            const racerDocRef = doc(this.db, `artifacts/${appId}/public/data/races`, state.raceId, "racers", state.userId);
-                const averageSpeed = state.elapsedTime > 0 ? (state.distanceCovered / (state.elapsedTime / 3600)) : 0;
-            const data = {
-                id: state.userId,
-                distance: state.distanceCovered,
-                    speed: state.speed, // Keep instantaneous speed for other purposes if needed
-                    averageSpeed: averageSpeed,
-                lastUpdate: serverTimestamp(),
-                finished: isFinished,
-            };
-
-            setDoc(racerDocRef, data, { merge: true })
-                .then(() => {
-                    state.lastFirebaseUpdateTime = now;
-                    state.lastFirebaseUpdateDistance = state.distanceCovered;
-                    console.log("Player state updated to Firebase.");
-                })
-                .catch(error => {
-                    console.error("Error updating player state:", error);
-                    // Basic check for quota error. In a real app, you'd check error.code.
-                    if (error.message.includes("RESOURCE_EXHAUSTED") || error.message.includes("quota")) {
-                        console.warn("Firebase quota likely met. Disabling further updates.");
-                        state.firebaseQuotaMet = true;
-                        DOMElements.raceStatus.textContent = "Local Mode (Firebase Quota Met)";
-                        DOMElements.raceStatus.className = "text-yellow-400";
+            if (!currentRecord || runData.totalTime < currentRecord.totalTime) {
+                // New record!
+                await updateDoc(courseRef, {
+                    recordRun: {
+                        runnerName: runData.runnerName,
+                        totalTime: runData.totalTime,
+                        checkpointTimes: runData.checkpointTimes,
+                        achievedAt: serverTimestamp(),
                     }
                 });
+                console.log("New record set for course:", courseId);
+                UIController.displayNewRecordMessage(runData.runnerName);
+            }
+        } catch (e) {
+            console.error("Error saving run: ", e);
         }
-    },
-    listenForRacers() {
-        if (state.raceUnsubscribe) state.raceUnsubscribe(); // Unsubscribe from previous listener
-        const racersColRef = collection(this.db, `artifacts/${appId}/public/data/races`, state.raceId, "racers");
-        state.raceUnsubscribe = onSnapshot(racersColRef, (snapshot) => {
-            snapshot.docChanges().forEach((change) => {
-                const racerData = change.doc.data();
-                state.racers[racerData.id] = racerData;
-            });
-            UIController.updateLeaderboard();
-            UIController.updateRacerDots();
-        });
     }
 };

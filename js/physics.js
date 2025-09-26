@@ -1,5 +1,7 @@
 export const PhysicsController = {
-     parseGPX(gpxString) {
+
+     parseGPX(gpxString, fileName) {
+
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(gpxString, "text/xml");
         const points = [];
@@ -7,7 +9,19 @@ export const PhysicsController = {
 
         if (trkpts.length === 0) return null;
 
-        for (let i = 0; i < trkpts.length; i++) {
+
+        let courseName = fileName.replace('.gpx', '');
+        const nameEl = xmlDoc.getElementsByTagName("name")[0];
+        if (nameEl) {
+            courseName = nameEl.textContent;
+        }
+
+        // Limit the number of track points to prevent excessive data
+        const maxPoints = 5000;
+        const step = Math.max(1, Math.floor(trkpts.length / maxPoints));
+
+        for (let i = 0; i < trkpts.length; i += step) {
+
             const ele = trkpts[i].getElementsByTagName("ele")[0];
             if (ele) {
                  points.push({
@@ -28,15 +42,21 @@ export const PhysicsController = {
             const elevationChangeM = p2.ele - p1.ele;
             let gradient = (distanceKm > 0) ? (elevationChangeM / (distanceKm * 1000)) * 100 : 0;
 
+            const startDistanceMiles = totalDistanceKm * 0.621371;
+
             routeData.push({
-                startDistance: totalDistanceKm * 0.621371, // convert to miles
-                distance: distanceKm * 0.621371, // convert to miles
+                startDistance: startDistanceMiles,
+                distance: distanceKm * 0.621371,
+
                 gradient: isNaN(gradient) ? 0 : gradient,
                 ele: p1.ele,
             });
             totalDistanceKm += distanceKm;
         }
-         if (points.length > 0) {
+
+
+        if (points.length > 0) {
+
             routeData.push({
                 startDistance: totalDistanceKm * 0.621371,
                 distance: 0,
@@ -45,7 +65,22 @@ export const PhysicsController = {
             });
         }
 
-        return { route: routeData, totalDistance: totalDistanceKm * 0.621371 };
+        const totalDistanceMiles = totalDistanceKm * 0.621371;
+        const checkpoints = [];
+        if (totalDistanceMiles > 0) {
+            checkpoints.push({
+                mile: 0.5, // Represents the 50% mark
+                distance: totalDistanceMiles / 2,
+            });
+        }
+
+        return {
+            name: courseName,
+            route: routeData,
+            totalDistance: totalDistanceMiles,
+            checkpoints: checkpoints,
+        };
+
     },
     haversineDistance(p1, p2) {
         const R = 6371; // km
@@ -99,4 +134,6 @@ export const PhysicsController = {
 
         return high; // or low, they will be very close
     }
+
 };
+

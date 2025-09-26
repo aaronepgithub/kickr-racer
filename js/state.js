@@ -1,28 +1,38 @@
 export const state = {
     userId: null,
-    raceId: null,
-    gpxData: null,
-    racers: {},
-    totalDistance: 0, // In miles
-    distanceCovered: 0, // In miles
-    speed: 0, // In mph
-    power: 0, // In watts
+
+    racerName: '',
+
+    // Course data
+    course: null, // The full selected course object from Firebase
+    gpxData: null, // The route data for the current course
+    totalDistance: 0,
+
+    // Live race data
+    distanceCovered: 0,
+    speed: 0,
+    power: 0,
     gradient: 0,
-    riderWeightLbs: 165,
-    raceStartTime: null, // Timestamp
+    elapsedTime: 0,
+    riderWeightLbs: 165, // Add back with a default value
+
+    // Race state
     raceStarted: false,
     countdownInterval: null,
+
+    // Checkpoint tracking for the current run
+    checkpointTimes: [],
+    nextCheckpointIndex: 0,
+
+    // Trainer connection
+
     trainer: {
         device: null,
         controlCharacteristic: null,
         dataCharacteristic: null,
         connected: false,
-        powerOffset: 2, // configurable offset to read instantaneous power (default 2)
+
+        isSettingGradient: false,
     },
-    raceUnsubscribe: null,
-    raceDocUnsubscribe: null,
-    lastFirebaseUpdateTime: 0,
-    lastFirebaseUpdateDistance: 0,
-    firebaseQuotaMet: false,
-    elapsedTime: 0,
 };
+

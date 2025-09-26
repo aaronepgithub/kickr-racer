@@ -25,18 +25,21 @@
 
             <!-- Header -->
             <div class="text-center">
-                <h1 class="text-3xl font-bold text-cyan-400">Kickr GPX Racer</h1>
-                <p class="text-gray-400">Create a race, share the link, and ride with friends.</p>
+
+                <h1 class="text-3xl font-bold text-cyan-400">Kickr Time-Trial</h1>
+                <p class="text-gray-400">Race against the clock and set new course records.</p>
             </div>
 
-            <!-- Race Countdown Timer -->
+            <!-- Countdown Timer -->
             <div id="countdown-section" class="hidden text-center bg-gray-700 p-4 rounded-lg">
                 <p class="font-semibold mb-2 text-lg">Race Starts In:</p>
-                <p id="countdown-timer" class="text-5xl font-bold text-yellow-400 countdown-timer">00:00</p>
+                <p id="countdown-timer" class="text-5xl font-bold text-yellow-400 countdown-timer">00:10</p>
             </div>
 
             <!-- Status & Connection -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+
+
                 <div id="bluetooth-status" class="bg-gray-700 p-4 rounded-lg">
                     <p class="font-semibold">Trainer Status</p>
                     <p class="text-red-400">Disconnected</p>
@@ -45,59 +48,71 @@
                     <p class="font-semibold">Race Status</p>
                     <p class="text-gray-400">Not Started</p>
                 </div>
-                <div id="user-id-display" class="bg-gray-700 p-4 rounded-lg">
-                    <p class="font-semibold">Your Racer ID</p>
-                    <p class="text-yellow-400 text-xs break-all">Initializing...</p>
+
+            </div>
+
+            <!-- Course Profile Display -->
+            <div id="course-profile-section" class="space-y-2 pt-4">
+                <h3 class="font-semibold mb-2 text-center">Course Profile</h3>
+                <div id="course-profile-container" class="relative w-full h-40 bg-gray-900 rounded-lg overflow-hidden">
+                    <canvas id="course-profile-canvas" class="w-full h-full"></canvas>
+                    <div id="course-profile-placeholder" class="absolute inset-0 flex items-center justify-center text-gray-500">
+                        <p>Select a course to see the elevation profile.</p>
+                    </div>
+                    <!-- Racer dots will be dynamically added here -->
                 </div>
             </div>
 
-            <!-- Pre-Race Controls -->
-            <div id="pre-race-controls" class="space-y-4">
-                <div class="flex flex-wrap justify-center items-center gap-4">
+            <!-- Pre-Race Setup -->
+            <div id="pre-race-setup">
+                <!-- Connect & Name -->
+                <div class="flex flex-wrap justify-center items-center gap-4 py-4">
                     <button id="connect-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                         Connect to Trainer
                     </button>
-                     <div class="flex items-center space-x-2">
-                         <label for="weight-input" class="font-semibold">Your Weight:</label>
-                         <input type="number" id="weight-input" class="bg-gray-700 text-white w-24 p-2 rounded-lg text-center" value="165">
-                         <span class="text-gray-400">lbs</span>
+                    <div class="flex items-center space-x-2">
+                        <label for="racer-name-input" class="font-semibold">Your Name:</label>
+                        <input type="text" id="racer-name-input" class="bg-gray-700 text-white w-48 p-2 rounded-lg text-center" placeholder="Enter Your Name">
                     </div>
                 </div>
-                 <div class="flex flex-wrap justify-center items-center gap-4">
-                    <div class="flex items-center space-x-2">
-                         <input type="file" id="gpx-upload" accept=".gpx" class="hidden"/>
-                         <label for="gpx-upload" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg cursor-pointer transition-colors">
-                             Upload GPX Route
-                         </label>
-                         <span id="gpx-file-name" class="text-gray-400">No file chosen</span>
+
+                <!-- Course Selection -->
+                <div class="space-y-4">
+                    <h2 class="text-xl font-bold text-center text-cyan-400">Select a Course</h2>
+                    <div id="course-list" class="space-y-3 max-h-60 overflow-y-auto p-2 bg-gray-900 rounded-lg">
+                        <p>Loading courses...</p>
+                        <!-- Courses will be dynamically loaded here -->
                     </div>
-                    <button id="create-race-btn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
-                        Create Race
+                </div>
+
+                <!-- Upload New Course -->
+                <div class="space-y-2 pt-4 text-center">
+                    <h3 class="font-semibold">Or Upload a New Course</h3>
+                     <div class="flex justify-center items-center gap-4">
+                        <input type="file" id="gpx-upload" accept=".gpx" class="hidden"/>
+                        <label for="gpx-upload" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg cursor-pointer transition-colors">
+                            Upload GPX
+                        </label>
+                        <span id="gpx-file-name" class="text-gray-400">No file chosen</span>
+                    </div>
+                </div>
+
+                <!-- Start Button -->
+                <div class="text-center pt-6">
+                    <button id="start-race-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-xl transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
+                        Start Time-Trial
+
                     </button>
                 </div>
             </div>
 
-             <!-- Race Creator: Start Timer Controls -->
-            <div id="start-timer-controls" class="hidden text-center bg-gray-700 p-4 rounded-lg space-y-2">
-                 <p class="font-semibold">Set Race Start Time:</p>
-                 <div class="flex justify-center gap-2">
-                     <button data-time="1" class="start-time-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">1 min</button>
-                     <button data-time="5" class="start-time-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">5 mins</button>
-                     <button data-time="10" class="start-time-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">10 mins</button>
-                 </div>
-            </div>
 
-            <!-- Share Link Modal -->
-            <div id="share-link-section" class="hidden text-center bg-gray-700 p-4 rounded-lg">
-                <p class="font-semibold mb-2">Race Created! Share this link:</p>
-                <input id="share-link-input" type="text" class="w-full bg-gray-800 text-cyan-300 p-2 rounded border border-gray-600 text-center" readonly>
-                <button id="copy-link-btn" class="mt-2 bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Copy</button>
-            </div>
 
             <!-- Race Display -->
-            <div id="race-display" class="space-y-4 pt-4 border-t border-gray-700">
+            <div id="race-display" class="hidden space-y-4 pt-4 border-t border-gray-700">
                 <!-- Player Data -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
+
                     <div class="bg-gray-700 p-3 rounded-lg">
                         <p class="text-sm text-gray-400">Power</p>
                         <p id="power-display" class="text-2xl font-bold">0 W</p>
@@ -114,33 +129,24 @@
                         <p class="text-sm text-gray-400">Gradient</p>
                         <p id="gradient-display" class="text-2xl font-bold">0.0 %</p>
                     </div>
-                    <div class="bg-gray-700 p-3 rounded-lg col-span-2">
-                        <p class="text-sm text-gray-400">Total Race Distance</p>
-                        <p id="total-distance-display" class="text-2xl font-bold">0.00 mi</p>
-                    </div>
-                    <div class="bg-gray-700 p-3 rounded-lg col-span-2">
+
+                    <div class="bg-gray-700 p-3 rounded-lg">
                         <p class="text-sm text-gray-400">Elapsed Time</p>
                         <p id="elapsed-time-display" class="text-2xl font-bold">00:00:00</p>
                     </div>
-                </div>
-
-                <!-- Course Profile -->
-                <div>
-                    <h3 class="font-semibold mb-2 text-center">Course Profile</h3>
-                    <div id="course-profile-container" class="relative w-full h-40 bg-gray-900 rounded-lg overflow-hidden">
-                        <canvas id="course-profile-canvas" class="w-full h-full"></canvas>
-                        <!-- Racer dots will be dynamically added here -->
+                    <div class="bg-cyan-700 p-3 rounded-lg">
+                        <p class="text-sm text-cyan-200">vs. Ghost</p>
+                        <p id="ghost-diff-display" class="text-2xl font-bold">+0:00</p>
                     </div>
                 </div>
 
-                <!-- Leaderboard -->
+                <!-- Checkpoint Times -->
                 <div>
-                    <h3 class="font-semibold mb-2 text-center">Racers</h3>
-                    <div id="leaderboard" class="space-y-2">
-                        <!-- Racer entries will be dynamically added here -->
-                        <div class="bg-gray-700 p-3 rounded-lg flex justify-between items-center">
-                            <p>Waiting for racers to join...</p>
-                        </div>
+                    <h3 class="font-semibold mb-2 text-center">Record Times</h3>
+                    <div id="record-times-display" class="space-y-2 text-center text-gray-400">
+                        <p>Ghost: <span id="record-holder-name">N/A</span></p>
+                        <p>Record: <span id="record-holder-time">N/A</span></p>
+
                     </div>
                 </div>
             </div>
