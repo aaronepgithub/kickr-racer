@@ -20,6 +20,9 @@ export const state = {
     raceStarted: false,
     countdownInterval: null,
 
+    // Ghost data for comparison
+    ghostDistanceCovered: 0,
+
     // Checkpoint tracking for the current run
     checkpointTimes: [],
     nextCheckpointIndex: 0,

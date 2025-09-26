@@ -38,6 +38,16 @@ export const UIController = {
         state.gpxData = JSON.parse(course.gpx);
         state.totalDistance = course.totalDistance;
 
+        // Data migration for older record runs that may not have distance in checkpoints
+        if (state.course.recordRun && state.course.recordRun.checkpointTimes) {
+            state.course.recordRun.checkpointTimes.forEach(cp => {
+                if (cp.distance === undefined) {
+                    // The old property was called 'mile' but represented a percentage
+                    cp.distance = cp.mile * state.totalDistance;
+                }
+            });
+        }
+
         // Highlight selected course
         Array.from(DOMElements.courseList.children).forEach(child => {
             child.classList.remove('bg-cyan-700');
@@ -244,55 +254,78 @@ export const UIController = {
         ctx.lineWidth = 4;
         ctx.stroke();
     },
-    updateRacerDots() {
-        // In time-trial mode, we only show one dot for the player.
-        // The ghost can be represented differently, e.g., on the checkpoint display.
-        if (!state.totalDistance || state.totalDistance === 0) return;
+    _updateDot(id, distanceCovered, className) {
+        if (!state.gpxData || state.gpxData.length < 2 || !state.totalDistance || state.totalDistance === 0) {
+            const dot = document.getElementById(id);
+            if (dot) dot.style.display = 'none';
+            return;
+        }
 
-        let dot = document.getElementById(`dot-${state.userId}`);
+        let dot = document.getElementById(id);
         if (!dot) {
             dot = document.createElement('div');
-            dot.id = `dot-${state.userId}`;
-            dot.className = 'race-dot absolute w-3 h-3 rounded-full border-2 bg-cyan-400 border-white';
+            dot.id = id;
+            dot.className = className;
             dot.style.transform = 'translateY(-50%)';
             DOMElements.courseProfileContainer.appendChild(dot);
         }
+        dot.style.display = 'block';
 
-        const percentComplete = (state.distanceCovered / state.totalDistance);
-        const currentPos = state.totalDistance * percentComplete;
-        let segmentIndex = state.gpxData.findIndex(p => p.startDistance <= currentPos && (p.startDistance + p.distance) > currentPos);
+        const percentComplete = (distanceCovered / state.totalDistance);
+        const currentPos = Math.min(state.totalDistance, Math.max(0, distanceCovered));
 
-        if (segmentIndex === -1 && state.gpxData.length > 1) {
+        let segmentIndex = state.gpxData.findIndex(p => currentPos >= p.startDistance && currentPos < (p.startDistance + p.distance));
+
+        if (segmentIndex === -1) {
+            // If not found, it's likely on the last point or beyond.
             segmentIndex = state.gpxData.length - 2;
-        } else if (segmentIndex === -1 || !state.gpxData[segmentIndex + 1]) {
-             segmentIndex = state.gpxData.length -2;
-             if (segmentIndex < 0) return; // Not enough data to draw dot
         }
+
+        if (segmentIndex < 0) return;
 
         const p1 = state.gpxData[segmentIndex];
         const p2 = state.gpxData[segmentIndex + 1];
 
-        if (p1 && p2) {
-            const segmentDist = p2.startDistance - p1.startDistance;
-            const distIntoSegment = currentPos - p1.startDistance;
-            const percentIntoSegment = segmentDist > 0 ? distIntoSegment / segmentDist : 0;
+        if (!p1 || !p2) return;
 
-            const interpolatedEle = p1.ele + (p2.ele - p1.ele) * percentIntoSegment;
+        const segmentDist = p2.startDistance - p1.startDistance;
+        const distIntoSegment = currentPos - p1.startDistance;
+        const percentIntoSegment = segmentDist > 0 ? distIntoSegment / segmentDist : 0;
+        const interpolatedEle = p1.ele + (p2.ele - p1.ele) * percentIntoSegment;
 
-            const elevations = state.gpxData.map(p => p.ele);
-            const maxEle = Math.max(...elevations);
-            const minEle = Math.min(...elevations);
-            const eleRange = maxEle - minEle === 0 ? 1 : maxEle - minEle;
-            const padding = 20;
+        const elevations = state.gpxData.map(p => p.ele);
+        const maxEle = Math.max(...elevations);
+        const minEle = Math.min(...elevations);
+        const eleRange = maxEle - minEle === 0 ? 1 : maxEle - minEle;
+        const padding = 20;
 
-            const rect = DOMElements.courseProfileCanvas.getBoundingClientRect();
-            const yPercent = 1 - ((interpolatedEle - minEle) / eleRange);
-            const topPx = yPercent * (rect.height - padding * 2) + padding;
+        const rect = DOMElements.courseProfileCanvas.getBoundingClientRect();
+        if (rect.height === 0) return;
 
-            dot.style.top = `${topPx}px`;
+        const yPercent = 1 - ((interpolatedEle - minEle) / eleRange);
+        const topPx = yPercent * (rect.height - padding * 2) + padding;
+
+        dot.style.top = `${topPx}px`;
+        dot.style.left = `calc(${Math.min(100, percentComplete * 100)}% - 6px)`;
+    },
+
+    updateRacerDots() {
+        this._updateDot(
+            `dot-${state.userId}`,
+            state.distanceCovered,
+            'race-dot absolute w-3 h-3 rounded-full border-2 bg-cyan-400 border-white'
+        );
+
+        if (state.course && state.course.recordRun) {
+            this._updateDot(
+                'dot-ghost',
+                state.ghostDistanceCovered,
+                'race-dot absolute w-3 h-3 rounded-full border-2 bg-yellow-400 border-white opacity-70'
+            );
+        } else {
+            const ghostDot = document.getElementById('dot-ghost');
+            if (ghostDot) ghostDot.style.display = 'none';
         }
-
-        dot.style.left = `calc(${percentComplete * 100}% - 6px)`;
     }
 };
 
