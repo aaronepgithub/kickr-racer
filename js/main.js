@@ -34,20 +34,61 @@ function gameLoop() {
         UIController.updateElapsedTime();
         UIController.updateRacerDots();
 
-        // --- Checkpoint and Ghost Logic ---
+        // --- Ghost Position Calculation ---
+        if (state.course.recordRun && state.course.recordRun.checkpointTimes) {
+            const recordTimes = [{ percent: 0, time: 0, distance: 0 }, ...state.course.recordRun.checkpointTimes];
+            let ghostSegmentIndex = recordTimes.findIndex(ct => ct.time > state.elapsedTime) - 1;
+
+            if (ghostSegmentIndex === -2) { // Race finished for ghost
+                ghostSegmentIndex = recordTimes.length - 2;
+            }
+             if (ghostSegmentIndex < 0) {
+                 ghostSegmentIndex = 0;
+            }
+
+            if (ghostSegmentIndex < recordTimes.length - 1) {
+                const startCp = recordTimes[ghostSegmentIndex];
+                const endCp = recordTimes[ghostSegmentIndex + 1];
+                const timeInSegment = state.elapsedTime - startCp.time;
+                const segmentDuration = endCp.time - startCp.time;
+                const segmentDistance = endCp.distance - startCp.distance;
+
+                if (segmentDuration > 0) {
+                    const progressInSegment = timeInSegment / segmentDuration;
+                    state.ghostDistanceCovered = startCp.distance + (progressInSegment * segmentDistance);
+                } else {
+                     state.ghostDistanceCovered = startCp.distance;
+                }
+            } else {
+                // If ghost has finished, keep them at the end
+                state.ghostDistanceCovered = state.totalDistance;
+            }
+        }
+
+        // --- Checkpoint Logic ---
         const nextCheckpoint = state.course.checkpoints[state.nextCheckpointIndex];
         if (nextCheckpoint && state.distanceCovered >= nextCheckpoint.distance) {
-            state.checkpointTimes.push({ mile: nextCheckpoint.mile, time: state.elapsedTime });
-
-            // Compare with ghost if a record run exists
-            if (state.course.recordRun && state.course.recordRun.checkpointTimes) {
-                const ghostCheckpoint = state.course.recordRun.checkpointTimes.find(ct => ct.mile === nextCheckpoint.mile);
-                if (ghostCheckpoint) {
-                    const timeDiff = state.elapsedTime - ghostCheckpoint.time;
-                    UIController.updateGhostDiff(timeDiff);
-                }
-            }
+            state.checkpointTimes.push({
+                percent: nextCheckpoint.percent,
+                time: state.elapsedTime,
+                distance: nextCheckpoint.distance
+            });
             state.nextCheckpointIndex++;
+        }
+
+        // --- Ghost Time Diff Calculation ---
+        if (state.course.recordRun && state.ghostDistanceCovered > 0) {
+            const distanceDiff = state.ghostDistanceCovered - state.distanceCovered; // in miles
+
+            let timeDiff = 0;
+            // To avoid wild fluctuations, only calculate time diff when speed is reasonable
+            if (state.speed > 1) {
+                 const playerSpeedMph = state.speed;
+                 const timeToCoverDiff_hours = distanceDiff / playerSpeedMph;
+                 timeDiff = timeToCoverDiff_hours * 3600; // convert to seconds
+            }
+
+            UIController.updateGhostDiff(timeDiff);
         }
 
         // --- Gradient Updates ---
