@@ -35,7 +35,7 @@ function gameLoop() {
         UIController.updateRacerDots();
 
         // --- Ghost Position Calculation ---
-        if (state.course.recordRun && state.course.recordRun.checkpointTimes) {
+        if (state.course.recordRun && state.course.recordRun.checkpointTimes && state.course.recordRun.checkpointTimes.length > 0) {
             const recordTimes = [{ percent: 0, time: 0, distance: 0 }, ...state.course.recordRun.checkpointTimes];
             let ghostSegmentIndex = recordTimes.findIndex(ct => ct.time > state.elapsedTime) - 1;
 
