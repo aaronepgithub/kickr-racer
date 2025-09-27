@@ -78,7 +78,8 @@ function gameLoop() {
 
         // --- Ghost Time Diff Calculation ---
         if (state.course.recordRun && state.ghostDistanceCovered > 0) {
-            const distanceDiff = state.ghostDistanceCovered - state.distanceCovered; // in miles
+            // Positive distanceDiff means player is ahead of the ghost
+            const distanceDiff = state.distanceCovered - state.ghostDistanceCovered; // in miles
 
             let timeDiff = 0;
             // To avoid wild fluctuations, only calculate time diff when speed is reasonable

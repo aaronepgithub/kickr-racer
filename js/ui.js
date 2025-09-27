@@ -6,8 +6,16 @@ import { PhysicsController } from './physics.js';
 
 export const UIController = {
     init() {
+        // Set initial weight from the DOM
+        state.riderWeightLbs = parseInt(DOMElements.racerWeightInput.value, 10);
+
         DOMElements.connectBtn.addEventListener('click', () => BluetoothController.connect());
         DOMElements.gpxUpload.addEventListener('change', (event) => this.handleFileUpload(event));
+        DOMElements.racerNameInput.addEventListener('input', () => this.updateStartRaceButtonState());
+        DOMElements.racerWeightInput.addEventListener('input', (e) => {
+            state.riderWeightLbs = parseInt(e.target.value, 10);
+            this.updateStartRaceButtonState();
+        });
 
         DOMElements.startRaceBtn.addEventListener('click', () => this.startRace());
 
@@ -105,9 +113,10 @@ export const UIController = {
 
     updateStartRaceButtonState() {
         const nameEntered = DOMElements.racerNameInput.value.trim() !== '';
+        const weightEntered = DOMElements.racerWeightInput.value > 0;
         const courseSelected = state.course !== null;
         const trainerConnected = state.trainer.connected;
-        DOMElements.startRaceBtn.disabled = !(nameEntered && courseSelected && trainerConnected);
+        DOMElements.startRaceBtn.disabled = !(nameEntered && weightEntered && courseSelected && trainerConnected);
     },
 
     displayRecordTimes() {
@@ -127,12 +136,13 @@ export const UIController = {
     },
 
     updateGhostDiff(diffSeconds) {
-        const sign = diffSeconds > 0 ? '+' : '-';
+        // Positive is ahead (green), negative is behind (red).
+        const sign = diffSeconds >= 0 ? '+' : '-';
         const absDiff = Math.abs(diffSeconds);
         const minutes = Math.floor(absDiff / 60);
         const seconds = Math.floor(absDiff % 60);
         DOMElements.ghostDiffDisplay.textContent = `${sign}${String(minutes)}:${String(seconds).padStart(2, '0')}`;
-        DOMElements.ghostDiffDisplay.className = diffSeconds > 0 ? 'text-2xl font-bold text-red-400' : 'text-2xl font-bold text-green-400';
+        DOMElements.ghostDiffDisplay.className = diffSeconds >= 0 ? 'text-2xl font-bold text-green-400' : 'text-2xl font-bold text-red-400';
     },
 
     displayNewRecordMessage(runnerName) {

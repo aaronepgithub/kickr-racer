@@ -7,6 +7,7 @@ export const DOMElements = {
     // Pre-Race
     preRaceSetup: document.getElementById('pre-race-setup'),
     racerNameInput: document.getElementById('racer-name-input'),
+    racerWeightInput: document.getElementById('racer-weight-input'),
     courseList: document.getElementById('course-list'),
     gpxUpload: document.getElementById('gpx-upload'),
     gpxFileName: document.getElementById('gpx-file-name'),
