@@ -68,10 +68,13 @@ export const PhysicsController = {
         const totalDistanceMiles = totalDistanceKm * 0.621371;
         const checkpoints = [];
         if (totalDistanceMiles > 0) {
-            checkpoints.push({
-                mile: 0.5, // Represents the 50% mark
-                distance: totalDistanceMiles / 2,
-            });
+            for (let i = 1; i <= 4; i++) {
+                const percent = i * 0.25;
+                checkpoints.push({
+                    percent: percent,
+                    distance: totalDistanceMiles * percent,
+                });
+            }
         }
 
         return {

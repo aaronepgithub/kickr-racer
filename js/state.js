@@ -14,11 +14,14 @@ export const state = {
     power: 0,
     gradient: 0,
     elapsedTime: 0,
-    riderWeightLbs: 165, // Add back with a default value
+    riderWeightLbs: 0,
 
     // Race state
     raceStarted: false,
     countdownInterval: null,
+
+    // Ghost data for comparison
+    ghostDistanceCovered: 0,
 
     // Checkpoint tracking for the current run
     checkpointTimes: [],
