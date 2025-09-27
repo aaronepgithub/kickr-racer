@@ -96,7 +96,7 @@ function gameLoop() {
         (async () => {
             let currentSegment = state.gpxData.find(s => state.distanceCovered >= s.startDistance && state.distanceCovered < (s.startDistance + s.distance));
             if (currentSegment) {
-                const newGradient = currentSegment.gradient;
+                const newGradient = currentSegment.gradient / 2; // Use 50% of the actual gradient
                 if (Math.abs(newGradient - state.gradient) > 0.1) {
                     state.gradient = newGradient;
                     await BluetoothController.setGradient(state.gradient);
