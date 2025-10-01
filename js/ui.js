@@ -403,7 +403,7 @@ export const UIController = {
             dot = document.createElement('div');
             dot.id = `dot-${id}`;
             dot.textContent = emoji;
-            dot.className = 'absolute text-4xl';
+            dot.className = 'absolute text-8xl';
             dot.style.transform = 'translate(-50%, -90%)';
              dot.style.zIndex = '10';
             container.appendChild(dot);
