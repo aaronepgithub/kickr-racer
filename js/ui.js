@@ -180,25 +180,36 @@ export const UIController = {
 
         gameRaceDisplay.id = 'game-race-display';
         gameCourseProfile.id = 'game-course-profile';
+        
+        // Remove the title from the game view's course profile
+        const title = gameCourseProfile.querySelector('h3');
+        if (title) title.remove();
 
         // Setup game view layout
         gameView.innerHTML = ''; // Clear previous content
         gameView.appendChild(gameCourseProfile);
         gameView.appendChild(gameRaceDisplay);
 
-        // Style for game view
+        // --- STYLE FOR GAME VIEW ---
+        // Make the profile container and canvas take up the full screen
         gameCourseProfile.className = 'relative w-full h-full';
         const canvas = gameCourseProfile.querySelector('canvas');
         canvas.className = 'w-full h-full';
 
-        gameRaceDisplay.className = 'absolute top-4 left-4 space-y-4';
-
+        // Style and position the data readouts
+        gameRaceDisplay.className = 'absolute top-4 left-4 grid grid-cols-3 gap-4 bg-gray-900 bg-opacity-50 p-4 rounded-lg';
+        
+        // Hide the main content and show the game view
         mainContent.classList.add('hidden');
         gameView.classList.remove('hidden');
 
-        // Redraw the canvas in its new container
-        this.drawCourseProfile(gameCourseProfile.querySelector('canvas'), gameCourseProfile.querySelector('#course-profile-placeholder'));
-        this.updateRacerDots();
+        // Redraw the canvas in its new, larger container
+        // We need a slight delay to allow the DOM to update and for the canvas to have a size
+        setTimeout(() => {
+            this.drawCourseProfile(canvas, gameCourseProfile.querySelector('#course-profile-placeholder'));
+            this.updateRacerDots();
+        }, 100);
+
 
         // Try to go fullscreen
         if (gameView.requestFullscreen) {
@@ -371,10 +382,12 @@ export const UIController = {
         ctx.lineWidth = 4;
         ctx.stroke();
     },
-    _updateDot(id, distanceCovered, className) {
+    _updateDot(id, distanceCovered, emoji, sizeClass) {
         const container = state.gameViewActive ? document.getElementById('game-course-profile') : DOMElements.courseProfileContainer;
+        if (!container) return;
+        
         const canvas = container.querySelector('canvas');
-        if (!container || !canvas) return;
+        if (!canvas) return;
 
         if (!state.gpxData || state.gpxData.length < 2 || !state.totalDistance || state.totalDistance === 0) {
             const dot = document.getElementById(id);
@@ -386,8 +399,9 @@ export const UIController = {
         if (!dot) {
             dot = document.createElement('div');
             dot.id = id;
-            dot.className = className;
-            dot.style.transform = 'translateY(-50%)';
+            dot.className = `race-dot absolute ${sizeClass}`;
+            dot.textContent = emoji;
+            dot.style.transform = 'translate(-50%, -50%)'; // Center the emoji
             container.appendChild(dot);
         }
         dot.style.display = 'block';
@@ -427,21 +441,26 @@ export const UIController = {
         const topPx = yPercent * (rect.height - padding * 2) + padding;
 
         dot.style.top = `${topPx}px`;
-        dot.style.left = `calc(${Math.min(100, percentComplete * 100)}% - 6px)`;
+        dot.style.left = `calc(${Math.min(100, percentComplete * 100)}%)`;
     },
 
     updateRacerDots() {
+        // Use a larger emoji for the game view
+        const sizeClass = state.gameViewActive ? 'text-4xl' : 'text-2xl';
+
         this._updateDot(
             `dot-${state.userId}`,
             state.distanceCovered,
-            'race-dot absolute w-3 h-3 rounded-full border-2 bg-cyan-400 border-white'
+            '🚴',
+            sizeClass
         );
 
         if (state.course && state.course.recordRun) {
             this._updateDot(
                 'dot-ghost',
                 state.ghostDistanceCovered,
-                'race-dot absolute w-3 h-3 rounded-full border-2 bg-yellow-400 border-white opacity-70'
+                '👻',
+                `${sizeClass} opacity-70`
             );
         } else {
             const ghostDot = document.getElementById('dot-ghost');
