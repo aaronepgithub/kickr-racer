@@ -1,4 +1,66 @@
+import { state } from './state.js';
+
 export const PhysicsController = {
+
+    getPointAtDistance(distance) {
+        if (!state.gpxData || state.gpxData.length < 2) return null;
+
+        const currentPos = Math.min(state.totalDistance, Math.max(0, distance));
+
+        let segmentIndex = state.gpxData.findIndex(p => currentPos >= p.startDistance && currentPos < (p.startDistance + p.distance));
+
+        if (segmentIndex === -1) {
+            segmentIndex = state.gpxData.length - 2; // On the last point or beyond
+        }
+        if (segmentIndex < 0) return null;
+
+        const p1 = state.gpxData[segmentIndex];
+        const p2 = state.gpxData[segmentIndex + 1];
+        if (!p1 || !p2) return null;
+
+        const segmentDist = p2.startDistance - p1.startDistance;
+        const distIntoSegment = currentPos - p1.startDistance;
+        const percentIntoSegment = segmentDist > 0 ? distIntoSegment / segmentDist : 0;
+        
+        const interpolatedEle = p1.ele + (p2.ele - p1.ele) * percentIntoSegment;
+        const interpolatedGradient = p1.gradient + (p2.gradient - p1.gradient) * percentIntoSegment;
+
+        return {
+            ele: interpolatedEle,
+            gradient: interpolatedGradient
+        };
+    },
+
+    getGhostDistance(elapsedTime) {
+        if (!state.course.recordRun || !state.course.recordRun.checkpointTimes || state.course.recordRun.checkpointTimes.length === 0) {
+            return 0;
+        }
+
+        const recordTimes = [{ percent: 0, time: 0, distance: 0 }, ...state.course.recordRun.checkpointTimes];
+        let ghostSegmentIndex = recordTimes.findIndex(ct => ct.time > elapsedTime) - 1;
+
+        if (ghostSegmentIndex === -2) { // Ghost has finished
+            return state.totalDistance;
+        }
+        if (ghostSegmentIndex < 0) {
+            ghostSegmentIndex = 0;
+        }
+
+        const startCp = recordTimes[ghostSegmentIndex];
+        const endCp = recordTimes[ghostSegmentIndex + 1];
+        if (!endCp) return startCp.distance;
+
+        const timeInSegment = elapsedTime - startCp.time;
+        const segmentDuration = endCp.time - startCp.time;
+        const segmentDistance = endCp.distance - startCp.distance;
+
+        if (segmentDuration > 0) {
+            const progressInSegment = timeInSegment / segmentDuration;
+            return startCp.distance + (progressInSegment * segmentDistance);
+        } else {
+            return startCp.distance;
+        }
+    },
 
      parseGPX(gpxString, fileName) {
 
@@ -16,7 +78,6 @@ export const PhysicsController = {
             courseName = nameEl.textContent;
         }
 
-        // Limit the number of track points to prevent excessive data
         const maxPoints = 5000;
         const step = Math.max(1, Math.floor(trkpts.length / maxPoints));
 
@@ -47,7 +108,6 @@ export const PhysicsController = {
             routeData.push({
                 startDistance: startDistanceMiles,
                 distance: distanceKm * 0.621371,
-
                 gradient: isNaN(gradient) ? 0 : gradient,
                 ele: p1.ele,
             });
@@ -56,7 +116,6 @@ export const PhysicsController = {
 
 
         if (points.length > 0) {
-
             routeData.push({
                 startDistance: totalDistanceKm * 0.621371,
                 distance: 0,
@@ -67,19 +126,19 @@ export const PhysicsController = {
 
         const totalDistanceMiles = totalDistanceKm * 0.621371;
         const checkpoints = [];
+        const checkpointInterval = 0.1; // miles
         if (totalDistanceMiles > 0) {
-            for (let i = 1; i <= 4; i++) {
-                const percent = i * 0.25;
-                checkpoints.push({
-                    percent: percent,
-                    distance: totalDistanceMiles * percent,
+            for (let d = checkpointInterval; d < totalDistanceMiles; d += checkpointInterval) {
+                 checkpoints.push({
+                    percent: d / totalDistanceMiles,
+                    distance: d,
                 });
             }
         }
 
         return {
             name: courseName,
-            route: routeData,
+            gpx: JSON.stringify(routeData),
             totalDistance: totalDistanceMiles,
             checkpoints: checkpoints,
         };
@@ -95,12 +154,12 @@ export const PhysicsController = {
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     },
-    // Solves for speed in m/s using a binary search approach
+
     calculateSpeedMps(power, gradient, weightLbs) {
         const riderWeightKg = weightLbs * 0.453592;
         const totalMass = riderWeightKg + 9; // Add bike weight
         const g = 9.81;
-        const Crr = 0.005; // Coefficient of rolling resistance
+        const Crr = 0.005; // Rolling resistance
         const rho = 1.225; // Air density
         const CdA = 0.32; // Drag coefficient * frontal area
 
@@ -109,24 +168,17 @@ export const PhysicsController = {
         const forceGravity = totalMass * g * Math.sin(Math.atan(grade));
         const forceRolling = totalMass * g * Math.cos(Math.atan(grade)) * Crr;
 
-        // This function calculates the power required to maintain a given speed 'v'.
-        // It's a monotonically increasing function for v >= 0.
         const powerRequired = (v) => {
             const f_drag = 0.5 * rho * CdA * v * v;
             return (forceRolling + forceGravity + f_drag) * v;
         };
 
-        // We use binary search to find the speed 'v' that requires the given 'power'.
         let low = 0;
-        let high = 50; // 50 m/s is ~112 mph, a safe upper bound.
+        let high = 50; // 50 m/s is a safe upper bound.
 
-        // If power required at max speed is less than rider power, they will accelerate.
-        // In our steady-state model, this means they are going at max speed.
-        if (powerRequired(high) < power) {
-            return high;
-        }
+        if (powerRequired(high) < power) return high;
 
-        for (let i = 0; i < 30; i++) { // 30 iterations for good precision
+        for (let i = 0; i < 30; i++) { // 30 iterations for precision
             const mid = (low + high) / 2;
             if (powerRequired(mid) < power) {
                 low = mid;
@@ -135,8 +187,6 @@ export const PhysicsController = {
             }
         }
 
-        return high; // or low, they will be very close
+        return high;
     }
-
 };
-
