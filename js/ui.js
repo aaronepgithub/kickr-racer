@@ -1,5 +1,4 @@
 import { state } from './state.js';
-import { DOMElements } from './dom.js';
 import { BluetoothController } from './bluetooth.js';
 import { FirebaseController } from './firebase.js';
 import { PhysicsController } from './physics.js';
@@ -10,18 +9,18 @@ const RIDER_POSITION_PERCENT = 20; // Rider is 20% from the left edge
 
 export const UIController = {
     init() {
-        state.riderWeightLbs = parseInt(DOMElements.racerWeightInput.value, 10);
+        state.riderWeightLbs = parseInt(document.getElementById('racer-weight-input').value, 10);
 
-        DOMElements.connectBtn.addEventListener('click', () => BluetoothController.connect());
-        DOMElements.simulatorBtn.addEventListener('click', () => this.toggleSimulator());
-        DOMElements.fullscreenBtn.addEventListener('click', () => this.enterGameView());
-        DOMElements.gpxUpload.addEventListener('change', (event) => this.handleFileUpload(event));
-        DOMElements.racerNameInput.addEventListener('input', () => this.updateStartRaceButtonState());
-        DOMElements.racerWeightInput.addEventListener('input', (e) => {
+        document.getElementById('connect-btn').addEventListener('click', () => BluetoothController.connect());
+        document.getElementById('simulator-btn').addEventListener('click', () => this.toggleSimulator());
+        document.getElementById('fullscreen-btn').addEventListener('click', () => this.enterGameView());
+        document.getElementById('gpx-upload').addEventListener('change', (event) => this.handleFileUpload(event));
+        document.getElementById('racer-name-input').addEventListener('input', () => this.updateStartRaceButtonState());
+        document.getElementById('racer-weight-input').addEventListener('input', (e) => {
             state.riderWeightLbs = parseInt(e.target.value, 10);
             this.updateStartRaceButtonState();
         });
-        DOMElements.startRaceBtn.addEventListener('click', () => this.startRace());
+        document.getElementById('start-race-btn').addEventListener('click', () => this.startRace());
 
         document.addEventListener('keydown', (e) => {
             if (state.simulator.active) {
@@ -38,36 +37,42 @@ export const UIController = {
 
     toggleSimulator() {
         state.simulator.active = !state.simulator.active;
+        const simulatorControls = document.getElementById('simulator-controls');
+        const bluetoothStatus = document.getElementById('bluetooth-status');
+        const connectBtn = document.getElementById('connect-btn');
+        const simulatorBtn = document.getElementById('simulator-btn');
+        
         if (state.simulator.active) {
-            DOMElements.simulatorControls.classList.remove('hidden');
-            DOMElements.bluetoothStatus.textContent = "Simulator Active";
-            DOMElements.bluetoothStatus.classList.add("text-purple-400");
-            DOMElements.bluetoothStatus.classList.remove("text-red-400");
+            simulatorControls.classList.remove('hidden');
+            bluetoothStatus.textContent = "Simulator Active";
+            bluetoothStatus.classList.add("text-purple-400");
+            bluetoothStatus.classList.remove("text-red-400");
             state.trainer.connected = true;
-            DOMElements.connectBtn.classList.add('hidden');
-            DOMElements.simulatorBtn.textContent = "Disable Simulator";
+            connectBtn.classList.add('hidden');
+            simulatorBtn.textContent = "Disable Simulator";
         } else {
-            DOMElements.simulatorControls.classList.add('hidden');
-            DOMElements.bluetoothStatus.textContent = "Disconnected";
-            DOMElements.bluetoothStatus.classList.add("text-red-400");
-            DOMElements.bluetoothStatus.classList.remove("text-purple-400");
+            simulatorControls.classList.add('hidden');
+            bluetoothStatus.textContent = "Disconnected";
+            bluetoothStatus.classList.add("text-red-400");
+            bluetoothStatus.classList.remove("text-purple-400");
             state.trainer.connected = false;
-            DOMElements.connectBtn.classList.remove('hidden');
-            DOMElements.simulatorBtn.textContent = "Use Simulator";
+            connectBtn.classList.remove('hidden');
+            simulatorBtn.textContent = "Use Simulator";
         }
         this.updateStartRaceButtonState();
     },
 
     updateSimPowerDisplay() {
-        DOMElements.simPowerDisplay.textContent = `${state.simulator.power} W`;
+        document.getElementById('sim-power-display').textContent = `${state.simulator.power} W`;
     },
 
     async loadCourses() {
-        DOMElements.courseList.innerHTML = '<p>Loading courses...</p>';
+        const courseList = document.getElementById('course-list');
+        courseList.innerHTML = '<p>Loading courses...</p>';
         const courses = await FirebaseController.getCourses();
-        DOMElements.courseList.innerHTML = '';
+        courseList.innerHTML = '';
         if (courses.length === 0) {
-            DOMElements.courseList.innerHTML = '<p>No courses found.</p>';
+            courseList.innerHTML = '<p>No courses found.</p>';
             return;
         }
         courses.forEach(course => {
@@ -75,7 +80,7 @@ export const UIController = {
             courseEl.className = 'p-3 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-700';
             courseEl.textContent = course.name;
             courseEl.addEventListener('click', () => this.selectCourse(course));
-            DOMElements.courseList.appendChild(courseEl);
+            courseList.appendChild(courseEl);
         });
     },
 
@@ -91,57 +96,58 @@ export const UIController = {
                 }
             });
         }
-
-        Array.from(DOMElements.courseList.children).forEach(c => c.classList.remove('bg-cyan-700'));
-        const selectedEl = Array.from(DOMElements.courseList.children).find(c => c.textContent === course.name);
+        const courseList = document.getElementById('course-list');
+        Array.from(courseList.children).forEach(c => c.classList.remove('bg-cyan-700'));
+        const selectedEl = Array.from(courseList.children).find(c => c.textContent === course.name);
         if (selectedEl) selectedEl.classList.add('bg-cyan-700');
 
         this.drawCourseProfile();
         this.displayRecordTimes();
         this.updateStartRaceButtonState();
-        DOMElements.raceStatus.textContent = `${course.name} selected.`;
+        document.getElementById('race-status').textContent = `${course.name} selected.`;
     },
 
     async handleFileUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
-        DOMElements.gpxFileName.textContent = `Parsing ${file.name}...`;
+        const gpxFileName = document.getElementById('gpx-file-name');
+        gpxFileName.textContent = `Parsing ${file.name}...`;
         const reader = new FileReader();
         reader.onload = async (e) => {
             const result = PhysicsController.parseGPX(e.target.result, file.name);
             if (!result) {
-                DOMElements.gpxFileName.textContent = "Invalid GPX file";
+                gpxFileName.textContent = "Invalid GPX file";
                 return;
             }
-            DOMElements.gpxFileName.textContent = "Uploading...";
+            gpxFileName.textContent = "Uploading...";
             const courseId = await FirebaseController.uploadCourse(result);
             if (courseId) {
-                DOMElements.gpxFileName.textContent = "Uploaded!";
+                gpxFileName.textContent = "Uploaded!";
                 await this.loadCourses();
                 const courses = await FirebaseController.getCourses();
                 const newCourse = courses.find(c => c.id === courseId);
                 if (newCourse) this.selectCourse(newCourse);
             } else {
-                DOMElements.gpxFileName.textContent = "Upload failed.";
+                gpxFileName.textContent = "Upload failed.";
             }
         };
         reader.readAsText(file);
     },
 
     startRace() {
-        DOMElements.preRaceSetup.classList.add('hidden');
+        document.getElementById('pre-race-setup').classList.add('hidden');
         if (!state.gameViewActive) {
-            DOMElements.raceDisplay.classList.remove('hidden');
+            document.getElementById('race-display').classList.remove('hidden');
         }
-        DOMElements.countdownSection.classList.remove('hidden');
-        DOMElements.fullscreenBtn.classList.remove('hidden');
+        document.getElementById('countdown-section').classList.remove('hidden');
+        document.getElementById('fullscreen-btn').classList.remove('hidden');
         this.startCountdown();
     },
 
     enterGameView() {
         state.gameViewActive = true;
-        const gameView = DOMElements.gameView;
-        const mainContent = DOMElements.mainContent;
+        const gameView = document.getElementById('game-view');
+        const mainContent = document.getElementById('main-content');
 
         // Create course profile for game view
         const courseProfile = document.createElement('div');
@@ -152,7 +158,7 @@ export const UIController = {
         courseProfile.appendChild(canvas);
 
         // Create race display for game view
-        const raceDisplayClone = DOMElements.raceDisplay.cloneNode(true);
+        const raceDisplayClone = document.getElementById('race-display').cloneNode(true);
         raceDisplayClone.id = 'game-race-display';
         raceDisplayClone.className = 'absolute top-4 left-4 right-4 grid grid-cols-2 md:grid-cols-5 gap-4 bg-gray-900 bg-opacity-70 p-4 rounded-lg';
         
@@ -170,21 +176,23 @@ export const UIController = {
     },
 
     updateStartRaceButtonState() {
-        const canStart = DOMElements.racerNameInput.value.trim() !== '' &&
-                         DOMElements.racerWeightInput.value > 0 &&
+        const canStart = document.getElementById('racer-name-input').value.trim() !== '' &&
+                         document.getElementById('racer-weight-input').value > 0 &&
                          state.course !== null &&
                          state.trainer.connected;
-        DOMElements.startRaceBtn.disabled = !canStart;
+        document.getElementById('start-race-btn').disabled = !canStart;
     },
 
     displayRecordTimes() {
         const record = state.course ? state.course.recordRun : null;
+        const recordHolderName = document.getElementById('record-holder-name');
+        const recordHolderTime = document.getElementById('record-holder-time');
         if (record) {
-            DOMElements.recordHolderName.textContent = record.runnerName;
-            DOMElements.recordHolderTime.textContent = this.formatTime(record.totalTime);
+            recordHolderName.textContent = record.runnerName;
+            recordHolderTime.textContent = this.formatTime(record.totalTime);
         } else {
-            DOMElements.recordHolderName.textContent = 'N/A';
-            DOMElements.recordHolderTime.textContent = 'N/A';
+            recordHolderName.textContent = 'N/A';
+            recordHolderTime.textContent = 'N/A';
         }
     },
 
@@ -194,7 +202,7 @@ export const UIController = {
         const minutes = Math.floor(absDiff / 60);
         const seconds = Math.floor(absDiff % 60);
         const timeStr = `${sign}${String(minutes)}:${String(seconds).padStart(2, '0')}`;
-        const displayEl = state.gameViewActive ? document.querySelector('#game-race-display #ghost-diff-display') : DOMElements.ghostDiffDisplay;
+        const displayEl = state.gameViewActive ? document.querySelector('#game-race-display #ghost-diff-display') : document.getElementById('ghost-diff-display');
         if (displayEl) {
             displayEl.textContent = timeStr;
             displayEl.className = diffSeconds <= 0 ? 'text-2xl font-bold text-green-400' : 'text-2xl font-bold text-red-400';
@@ -232,18 +240,20 @@ export const UIController = {
 
     startCountdown() {
         let count = 10;
+        const countdownTimer = document.getElementById('countdown-timer');
+        const countdownSection = document.getElementById('countdown-section');
         const update = () => {
             if (count > 0) {
-                DOMElements.countdownTimer.textContent = `00:${String(count).padStart(2, '0')}`;
+                countdownTimer.textContent = `00:${String(count).padStart(2, '0')}`;
                 count--;
             } else {
                 clearInterval(state.countdownInterval);
-                DOMElements.countdownTimer.textContent = "GO!";
-                DOMElements.countdownSection.classList.replace('bg-gray-700', 'bg-green-600');
+                countdownTimer.textContent = "GO!";
+                countdownSection.classList.replace('bg-gray-700', 'bg-green-600');
                 setTimeout(() => {
-                    DOMElements.countdownSection.classList.add('hidden');
+                    countdownSection.classList.add('hidden');
                     state.raceStarted = true;
-                    DOMElements.raceStatus.textContent = 'Race in Progress';
+                    document.getElementById('race-status').textContent = 'Race in Progress';
                 }, 500);
             }
         };
@@ -252,8 +262,8 @@ export const UIController = {
     },
 
     drawCourseProfile() {
-        const canvas = state.gameViewActive ? document.querySelector('#game-course-profile canvas') : DOMElements.courseProfileCanvas;
-        const placeholder = state.gameViewActive ? null : DOMElements.courseProfilePlaceholder;
+        const canvas = state.gameViewActive ? document.querySelector('#game-course-profile canvas') : document.getElementById('course-profile-canvas');
+        const placeholder = state.gameViewActive ? null : document.getElementById('course-profile-placeholder');
 
         if (!canvas) return; 
 
@@ -402,7 +412,7 @@ export const UIController = {
     },
 
     _updateStaticDot(id, distance, emoji) {
-        const container = DOMElements.courseProfileContainer;
+        const container = document.getElementById('course-profile-container');
         if (!container || !state.gpxData || state.gpxData.length < 2) return;
         const dot = this._getDot(id, emoji, container);
         
