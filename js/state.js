@@ -1,11 +1,11 @@
 export const state = {
-    userId: null,
+    userId: `rider-${Date.now()}`,
 
     racerName: '',
 
     // Course data
     course: null, // The full selected course object from Firebase
-    gpxData: null, // The route data for the current course
+    gpxData: null, // The parsed route data for the current course
     totalDistance: 0,
 
     // Live race data
@@ -14,12 +14,19 @@ export const state = {
     power: 0,
     gradient: 0,
     elapsedTime: 0,
-    riderWeightLbs: 0,
+    riderWeightLbs: 175,
 
     // Race state
     raceStarted: false,
+    raceFinished: false,
     gameViewActive: false,
     countdownInterval: null,
+
+    // Game view specific state
+    gameView: {
+        minEle: 0,
+        eleRange: 1
+    },
 
     // Ghost data for comparison
     ghostDistanceCovered: 0,
