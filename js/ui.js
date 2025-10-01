@@ -404,7 +404,11 @@ export const UIController = {
             dot.id = `dot-${id}`;
             dot.textContent = emoji;
             dot.className = 'absolute text-8xl';
-            dot.style.transform = 'translate(-50%, -90%)';
+            if (id === 'rider') {
+                dot.style.transform = 'translate(-50%, -90%) scaleX(-1)';
+            } else {
+                dot.style.transform = 'translate(-50%, -90%)';
+            }
              dot.style.zIndex = '10';
             container.appendChild(dot);
         }
