@@ -1,5 +1,10 @@
 export const DOMElements = {
     connectBtn: document.getElementById('connect-btn'),
+    simulatorBtn: document.getElementById('simulator-btn'),
+    fullscreenBtn: document.getElementById('fullscreen-btn'),
+
+    mainContent: document.getElementById('main-content'),
+    gameView: document.getElementById('game-view'),
 
     bluetoothStatus: document.getElementById('bluetooth-status').querySelector('p:last-child'),
     raceStatus: document.getElementById('race-status').querySelector('p:last-child'),
@@ -13,6 +18,10 @@ export const DOMElements = {
     gpxFileName: document.getElementById('gpx-file-name'),
     uploadCourseBtn: document.getElementById('upload-course-btn'),
     startRaceBtn: document.getElementById('start-race-btn'),
+
+    // Simulator
+    simulatorControls: document.getElementById('simulator-controls'),
+    simPowerDisplay: document.getElementById('sim-power-display'),
 
     // Countdown
     countdownSection: document.getElementById('countdown-section'),
@@ -30,6 +39,7 @@ export const DOMElements = {
     ghostDiffDisplay: document.getElementById('ghost-diff-display'),
 
     // Course Profile
+    courseProfileSection: document.getElementById('course-profile-section'),
     courseProfileContainer: document.getElementById('course-profile-container'),
     courseProfileCanvas: document.getElementById('course-profile-canvas'),
     courseProfilePlaceholder: document.getElementById('course-profile-placeholder'),
@@ -39,4 +49,3 @@ export const DOMElements = {
     recordHolderName: document.getElementById('record-holder-name'),
     recordHolderTime: document.getElementById('record-holder-time'),
 };
-

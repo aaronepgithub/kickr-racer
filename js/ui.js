@@ -1,3 +1,4 @@
+
 import { state } from './state.js';
 import { DOMElements } from './dom.js';
 import { BluetoothController } from './bluetooth.js';
@@ -10,6 +11,10 @@ export const UIController = {
         state.riderWeightLbs = parseInt(DOMElements.racerWeightInput.value, 10);
 
         DOMElements.connectBtn.addEventListener('click', () => BluetoothController.connect());
+        DOMElements.simulatorBtn.addEventListener('click', () => this.toggleSimulator());
+
+        DOMElements.fullscreenBtn.addEventListener('click', () => this.enterGameView());
+
         DOMElements.gpxUpload.addEventListener('change', (event) => this.handleFileUpload(event));
         DOMElements.racerNameInput.addEventListener('input', () => this.updateStartRaceButtonState());
         DOMElements.racerWeightInput.addEventListener('input', (e) => {
@@ -19,9 +24,52 @@ export const UIController = {
 
         DOMElements.startRaceBtn.addEventListener('click', () => this.startRace());
 
+        // Listen for keyboard events for simulator
+        document.addEventListener('keydown', (e) => {
+            if (state.simulator.active) {
+                if (e.key === 'ArrowUp') {
+                    state.simulator.power += 10;
+                } else if (e.key === 'ArrowDown') {
+                    state.simulator.power = Math.max(0, state.simulator.power - 10);
+                }
+                this.updateSimPowerDisplay();
+            }
+        });
+
+
         this.loadCourses();
         this.updateStartRaceButtonState();
         this.drawCourseProfile(); // Draw initial empty state
+    },
+    toggleSimulator() {
+        state.simulator.active = !state.simulator.active;
+
+        if (state.simulator.active) {
+            DOMElements.simulatorControls.classList.remove('hidden');
+            DOMElements.bluetoothStatus.textContent = "Simulator Active";
+            DOMElements.bluetoothStatus.classList.remove("text-red-400");
+            DOMElements.bluetoothStatus.classList.add("text-purple-400");
+            state.trainer.connected = true; // Pretend we are connected
+
+            DOMElements.connectBtn.classList.add('hidden');
+            DOMElements.simulatorBtn.textContent = "Disable Simulator";
+
+        } else {
+            DOMElements.simulatorControls.classList.add('hidden');
+            DOMElements.bluetoothStatus.textContent = "Disconnected";
+            DOMElements.bluetoothStatus.classList.add("text-red-400");
+            DOMElements.bluetoothStatus.classList.remove("text-purple-400");
+            state.trainer.connected = false;
+
+            DOMElements.connectBtn.classList.remove('hidden');
+            DOMElements.simulatorBtn.textContent = "Use Simulator";
+        }
+
+        this.updateStartRaceButtonState();
+    },
+
+    updateSimPowerDisplay() {
+        DOMElements.simPowerDisplay.textContent = `${state.simulator.power} W`;
     },
 
     async loadCourses() {
@@ -106,10 +154,60 @@ export const UIController = {
 
     startRace() {
         DOMElements.preRaceSetup.classList.add('hidden');
-        DOMElements.raceDisplay.classList.remove('hidden');
+
+        // Show the main race display if not in game view
+        if (!state.gameViewActive) {
+             DOMElements.raceDisplay.classList.remove('hidden');
+        }
+
         DOMElements.countdownSection.classList.remove('hidden');
+        DOMElements.fullscreenBtn.classList.remove('hidden');
+
         this.startCountdown();
     },
+    enterGameView() {
+        state.gameViewActive = true;
+        const gameView = DOMElements.gameView;
+        const mainContent = DOMElements.mainContent;
+
+        // Move the race elements to the game view
+        const raceDisplay = DOMElements.raceDisplay;
+        const courseProfile = DOMElements.courseProfileSection;
+
+        // Clone and replace to avoid ID conflicts
+        const gameRaceDisplay = raceDisplay.cloneNode(true);
+        const gameCourseProfile = courseProfile.cloneNode(true);
+
+        gameRaceDisplay.id = 'game-race-display';
+        gameCourseProfile.id = 'game-course-profile';
+
+        // Setup game view layout
+        gameView.innerHTML = ''; // Clear previous content
+        gameView.appendChild(gameCourseProfile);
+        gameView.appendChild(gameRaceDisplay);
+
+        // Style for game view
+        gameCourseProfile.className = 'relative w-full h-full';
+        const canvas = gameCourseProfile.querySelector('canvas');
+        canvas.className = 'w-full h-full';
+
+        gameRaceDisplay.className = 'absolute top-4 left-4 space-y-4';
+
+        mainContent.classList.add('hidden');
+        gameView.classList.remove('hidden');
+
+        // Redraw the canvas in its new container
+        this.drawCourseProfile(gameCourseProfile.querySelector('canvas'), gameCourseProfile.querySelector('#course-profile-placeholder'));
+        this.updateRacerDots();
+
+        // Try to go fullscreen
+        if (gameView.requestFullscreen) {
+            gameView.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            });
+        }
+    },
+
 
     updateStartRaceButtonState() {
         const nameEntered = DOMElements.racerNameInput.value.trim() !== '';
@@ -141,8 +239,12 @@ export const UIController = {
         const absDiff = Math.abs(diffSeconds);
         const minutes = Math.floor(absDiff / 60);
         const seconds = Math.floor(absDiff % 60);
-        DOMElements.ghostDiffDisplay.textContent = `${sign}${String(minutes)}:${String(seconds).padStart(2, '0')}`;
-        DOMElements.ghostDiffDisplay.className = diffSeconds >= 0 ? 'text-2xl font-bold text-green-400' : 'text-2xl font-bold text-red-400';
+        const displayEl = state.gameViewActive ? document.querySelector('#game-race-display #ghost-diff-display') : DOMElements.ghostDiffDisplay;
+        if(displayEl) {
+            displayEl.textContent = `${sign}${String(minutes)}:${String(seconds).padStart(2, '0')}`;
+            displayEl.className = diffSeconds >= 0 ? 'text-2xl font-bold text-green-400' : 'text-2xl font-bold text-red-400';
+        }
+
     },
 
     displayNewRecordMessage(runnerName) {
@@ -152,16 +254,20 @@ export const UIController = {
     },
 
     updatePower() {
-         DOMElements.powerDisplay.textContent = `${state.power} W`;
+         const displayEl = state.gameViewActive ? document.querySelector('#game-race-display #power-display') : DOMElements.powerDisplay;
+         if(displayEl) displayEl.textContent = `${state.power} W`;
     },
     updateSpeed() {
-        DOMElements.speedDisplay.textContent = `${state.speed.toFixed(1)} mph`;
+        const displayEl = state.gameViewActive ? document.querySelector('#game-race-display #speed-display') : DOMElements.speedDisplay;
+        if(displayEl) displayEl.textContent = `${state.speed.toFixed(1)} mph`;
     },
     updateDistance() {
-         DOMElements.distanceDisplay.textContent = `${state.distanceCovered.toFixed(2)} mi`;
+        const displayEl = state.gameViewActive ? document.querySelector('#game-race-display #distance-display') : DOMElements.distanceDisplay;
+        if(displayEl) displayEl.textContent = `${state.distanceCovered.toFixed(2)} mi`;
     },
     updateGradient() {
-        DOMElements.gradientDisplay.textContent = `${state.gradient.toFixed(1)} %`;
+        const displayEl = state.gameViewActive ? document.querySelector('#game-race-display #gradient-display') : DOMElements.gradientDisplay;
+        if(displayEl) displayEl.textContent = `${state.gradient.toFixed(1)} %`;
     },
 
     updateElapsedTime() {
@@ -169,8 +275,11 @@ export const UIController = {
         const hours = Math.floor(totalSeconds / 3600);
         const minutes = Math.floor((totalSeconds % 3600) / 60);
         const seconds = totalSeconds % 60;
-        DOMElements.elapsedTimeDisplay.textContent =
-            `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+        const displayEl = state.gameViewActive ? document.querySelector('#game-race-display #elapsed-time-display') : DOMElements.elapsedTimeDisplay;
+        if (displayEl) displayEl.textContent = timeString;
+
     },
     startCountdown() {
 
@@ -189,9 +298,7 @@ export const UIController = {
             }
         }, 1000);
     },
-    drawCourseProfile() {
-        const placeholder = DOMElements.courseProfilePlaceholder;
-        const canvas = DOMElements.courseProfileCanvas;
+    drawCourseProfile(canvas = DOMElements.courseProfileCanvas, placeholder = DOMElements.courseProfilePlaceholder) {
         const ctx = canvas.getContext('2d');
 
         if (!state.gpxData || state.gpxData.length === 0 || state.totalDistance === 0) {
@@ -265,6 +372,10 @@ export const UIController = {
         ctx.stroke();
     },
     _updateDot(id, distanceCovered, className) {
+        const container = state.gameViewActive ? document.getElementById('game-course-profile') : DOMElements.courseProfileContainer;
+        const canvas = container.querySelector('canvas');
+        if (!container || !canvas) return;
+
         if (!state.gpxData || state.gpxData.length < 2 || !state.totalDistance || state.totalDistance === 0) {
             const dot = document.getElementById(id);
             if (dot) dot.style.display = 'none';
@@ -277,7 +388,7 @@ export const UIController = {
             dot.id = id;
             dot.className = className;
             dot.style.transform = 'translateY(-50%)';
-            DOMElements.courseProfileContainer.appendChild(dot);
+            container.appendChild(dot);
         }
         dot.style.display = 'block';
 
@@ -309,7 +420,7 @@ export const UIController = {
         const eleRange = maxEle - minEle === 0 ? 1 : maxEle - minEle;
         const padding = 20;
 
-        const rect = DOMElements.courseProfileCanvas.getBoundingClientRect();
+        const rect = canvas.getBoundingClientRect();
         if (rect.height === 0) return;
 
         const yPercent = 1 - ((interpolatedEle - minEle) / eleRange);
@@ -338,4 +449,3 @@ export const UIController = {
         }
     }
 };
-

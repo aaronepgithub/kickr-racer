@@ -1,7 +1,5 @@
 import { state } from './state.js';
-
 import { DOMElements } from './dom.js';
-
 import { FirebaseController } from './firebase.js';
 import { BluetoothController } from './bluetooth.js';
 import { PhysicsController } from './physics.js';
@@ -10,14 +8,18 @@ import { UIController } from './ui.js';
 // --- MAIN GAME LOOP ---
 let lastUpdateTime = Date.now();
 
-
 function gameLoop() {
     const now = Date.now();
     const deltaTime = (now - lastUpdateTime) / 1000; // seconds
     lastUpdateTime = now;
 
-
     if (state.trainer.connected && state.raceStarted && state.gpxData) {
+        // Use simulator power if active
+        if (state.simulator.active) {
+            state.power = state.simulator.power;
+            UIController.updatePower();
+        }
+
         // --- Physics and State Updates ---
         const speedMps = PhysicsController.calculateSpeedMps(state.power, state.gradient, state.riderWeightLbs);
         state.speed = speedMps * 2.23694; // Convert m/s to mph
@@ -99,7 +101,10 @@ function gameLoop() {
                 const newGradient = currentSegment.gradient / 2; // Use 50% of the actual gradient
                 if (Math.abs(newGradient - state.gradient) > 0.1) {
                     state.gradient = newGradient;
-                    await BluetoothController.setGradient(state.gradient);
+                    // Only send bluetooth command if not in simulator mode
+                    if (!state.simulator.active) {
+                        await BluetoothController.setGradient(state.gradient);
+                    }
                     UIController.updateGradient();
                 }
             }
@@ -134,4 +139,3 @@ function init() {
 }
 
 init();
-

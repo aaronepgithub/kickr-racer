@@ -18,6 +18,7 @@ export const state = {
 
     // Race state
     raceStarted: false,
+    gameViewActive: false,
     countdownInterval: null,
 
     // Ghost data for comparison
@@ -28,14 +29,17 @@ export const state = {
     nextCheckpointIndex: 0,
 
     // Trainer connection
-
     trainer: {
         device: null,
         controlCharacteristic: null,
         dataCharacteristic: null,
         connected: false,
-
         isSettingGradient: false,
     },
-};
 
+    // Simulator mode
+    simulator: {
+        active: false,
+        power: 100, // starting power
+    },
+};

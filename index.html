@@ -10,6 +10,10 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+        #game-view {
+            width: 100vw;
+            height: 100vh;
+        }
         .race-dot {
             transition: left 0.5s linear, top 0.5s linear;
         }
@@ -21,13 +25,15 @@
 <body class="bg-gray-900 text-white antialiased">
 
     <div id="app" class="min-h-screen flex flex-col items-center justify-center p-4">
-        <div class="w-full max-w-4xl mx-auto bg-gray-800 rounded-2xl shadow-lg p-6 space-y-6">
+        <div id="main-content" class="w-full max-w-4xl mx-auto bg-gray-800 rounded-2xl shadow-lg p-6 space-y-6">
 
             <!-- Header -->
             <div class="text-center">
-
                 <h1 class="text-3xl font-bold text-cyan-400">Kickr Time-Trial</h1>
                 <p class="text-gray-400">Race against the clock and set new course records.</p>
+                <button id="fullscreen-btn" class="hidden bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors mt-4">
+                    Enter Game View
+                </button>
             </div>
 
             <!-- Countdown Timer -->
@@ -38,8 +44,6 @@
 
             <!-- Status & Connection -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
-
-
                 <div id="bluetooth-status" class="bg-gray-700 p-4 rounded-lg">
                     <p class="font-semibold">Trainer Status</p>
                     <p class="text-red-400">Disconnected</p>
@@ -48,10 +52,9 @@
                     <p class="font-semibold">Race Status</p>
                     <p class="text-gray-400">Not Started</p>
                 </div>
-
             </div>
 
-            <!-- Course Profile Display -->
+             <!-- Course Profile Display -->
             <div id="course-profile-section" class="space-y-2 pt-4">
                 <h3 class="font-semibold mb-2 text-center">Course Profile</h3>
                 <div id="course-profile-container" class="relative w-full h-40 bg-gray-900 rounded-lg overflow-hidden">
@@ -63,12 +66,16 @@
                 </div>
             </div>
 
+
             <!-- Pre-Race Setup -->
             <div id="pre-race-setup">
                 <!-- Connect & Name -->
                 <div class="flex flex-wrap justify-center items-center gap-4 py-4">
                     <button id="connect-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                         Connect to Trainer
+                    </button>
+                    <button id="simulator-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                        Use Simulator
                     </button>
                     <div class="flex items-center space-x-2">
                         <label for="racer-name-input" class="font-semibold">Your Name:</label>
@@ -79,6 +86,14 @@
                         <input type="number" id="racer-weight-input" class="bg-gray-700 text-white w-24 p-2 rounded-lg text-center" value="165">
                     </div>
                 </div>
+
+                 <!-- Simulator Controls -->
+                <div id="simulator-controls" class="hidden text-center bg-gray-700 p-4 rounded-lg space-y-2">
+                    <p class="font-semibold">Simulator Controls</p>
+                    <p class="text-gray-400">Use <kbd class="px-2 py-1.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded-lg">ArrowUp</kbd> to increase power and <kbd class="px-2 py-1.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded-lg">ArrowDown</kbd> to decrease power.</p>
+                    <p>Current Simulated Power: <span id="sim-power-display" class="font-bold text-cyan-400">100 W</span></p>
+                </div>
+
 
                 <!-- Course Selection -->
                 <div class="space-y-4">
@@ -105,7 +120,6 @@
                 <div class="text-center pt-6">
                     <button id="start-race-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-xl transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
                         Start Time-Trial
-
                     </button>
                 </div>
             </div>
@@ -116,7 +130,6 @@
             <div id="race-display" class="hidden space-y-4 pt-4 border-t border-gray-700">
                 <!-- Player Data -->
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
-
                     <div class="bg-gray-700 p-3 rounded-lg">
                         <p class="text-sm text-gray-400">Power</p>
                         <p id="power-display" class="text-2xl font-bold">0 W</p>
@@ -133,7 +146,6 @@
                         <p class="text-sm text-gray-400">Gradient</p>
                         <p id="gradient-display" class="text-2xl font-bold">0.0 %</p>
                     </div>
-
                     <div class="bg-gray-700 p-3 rounded-lg">
                         <p class="text-sm text-gray-400">Elapsed Time</p>
                         <p id="elapsed-time-display" class="text-2xl font-bold">00:00:00</p>
@@ -150,12 +162,15 @@
                     <div id="record-times-display" class="space-y-2 text-center text-gray-400">
                         <p>Ghost: <span id="record-holder-name">N/A</span></p>
                         <p>Record: <span id="record-holder-time">N/A</span></p>
-
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Game view will be populated dynamically -->
+    <div id="game-view" class="hidden bg-gray-900"></div>
+
 
     <script type="module" src="js/main.js"></script>
 </body>
