@@ -143,30 +143,27 @@ export const UIController = {
         const gameView = DOMElements.gameView;
         const mainContent = DOMElements.mainContent;
 
-        const raceDisplay = DOMElements.raceDisplay.cloneNode(true);
-        const courseProfile = DOMElements.courseProfileSection.cloneNode(true);
-
-        raceDisplay.id = 'game-race-display';
+        // Create course profile for game view
+        const courseProfile = document.createElement('div');
         courseProfile.id = 'game-course-profile';
+        courseProfile.className = 'relative w-full h-full';
+        const canvas = document.createElement('canvas');
+        canvas.className = 'w-full h-full';
+        courseProfile.appendChild(canvas);
 
-        const title = courseProfile.querySelector('h3');
-        if (title) title.remove();
-
+        // Create race display for game view
+        const raceDisplayClone = DOMElements.raceDisplay.cloneNode(true);
+        raceDisplayClone.id = 'game-race-display';
+        raceDisplayClone.className = 'absolute top-4 left-4 right-4 grid grid-cols-2 md:grid-cols-5 gap-4 bg-gray-900 bg-opacity-70 p-4 rounded-lg';
+        
+        // Clean up and append
         gameView.innerHTML = '';
         gameView.appendChild(courseProfile);
-        gameView.appendChild(raceDisplay);
-
-        courseProfile.className = 'relative w-full h-full';
-        const canvas = courseProfile.querySelector('canvas');
-        canvas.className = 'w-full h-full';
-
-        raceDisplay.className = 'absolute top-4 left-4 grid grid-cols-3 md:grid-cols-5 gap-4 bg-gray-900 bg-opacity-70 p-4 rounded-lg';
+        gameView.appendChild(raceDisplayClone);
 
         mainContent.classList.add('hidden');
         gameView.classList.remove('hidden');
         
-        // The game loop will now handle drawing, which ensures canvas is ready.
-
         if (gameView.requestFullscreen) {
             gameView.requestFullscreen().catch(err => console.error(`Fullscreen error: ${err.message}`));
         }
@@ -200,7 +197,7 @@ export const UIController = {
         const displayEl = state.gameViewActive ? document.querySelector('#game-race-display #ghost-diff-display') : DOMElements.ghostDiffDisplay;
         if (displayEl) {
             displayEl.textContent = timeStr;
-            displayEl.className = diffSeconds >= 0 ? 'text-2xl font-bold text-green-400' : 'text-2xl font-bold text-red-400';
+            displayEl.className = diffSeconds <= 0 ? 'text-2xl font-bold text-green-400' : 'text-2xl font-bold text-red-400';
         }
     },
 
@@ -221,7 +218,7 @@ export const UIController = {
     },
 
     updateRaceInfo(selector, text) {
-        const el = state.gameViewActive ? document.querySelector(`#game-race-display ${selector}`) : DOMElements[selector.slice(1)];
+        const el = state.gameViewActive ? document.querySelector(`#game-race-display ${selector}`) : document.querySelector(selector);
         if (el) el.textContent = text;
     },
 
@@ -256,9 +253,9 @@ export const UIController = {
 
     drawCourseProfile() {
         const canvas = state.gameViewActive ? document.querySelector('#game-course-profile canvas') : DOMElements.courseProfileCanvas;
-        const placeholder = state.gameViewActive ? document.querySelector('#game-course-profile #course-profile-placeholder') : DOMElements.courseProfilePlaceholder;
+        const placeholder = state.gameViewActive ? null : DOMElements.courseProfilePlaceholder;
 
-        if (!canvas) return; // Canvas not ready
+        if (!canvas) return; 
 
         if (!state.gpxData || state.gpxData.length === 0) {
             if(placeholder) placeholder.classList.remove('hidden');
@@ -398,6 +395,7 @@ export const UIController = {
             dot.textContent = emoji;
             dot.className = 'absolute text-4xl';
             dot.style.transform = 'translate(-50%, -90%)';
+             dot.style.zIndex = '10';
             container.appendChild(dot);
         }
         return dot;
@@ -447,7 +445,9 @@ export const UIController = {
         const rect = container.querySelector('canvas').getBoundingClientRect();
         const padding = 20;
         const yPercent = 1 - ((point.ele - state.gameView.minEle) / state.gameView.eleRange);
-        const topPx = yPercent * (rect.height - padding * 2) + padding;
+        
+        let topPx = yPercent * (rect.height - padding * 2) + padding;
+        topPx = Math.max(padding, Math.min(rect.height - padding, topPx));
 
         dot.style.top = `${topPx}px`;
         dot.style.left = `${leftPercent}%`;
