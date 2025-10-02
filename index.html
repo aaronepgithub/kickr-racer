@@ -1,143 +1,138 @@
 <!DOCTYPE html>
-<html lang="en" class="bg-gray-900 text-white">
+<html lang = "en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset = "UTF-8">
+    <meta name = "viewport" content = "width=device-width, initial-scale=1.0">
     <title>GPX Power Race</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href = "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel = "stylesheet">
+    <script src = "https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
-<body class="font-sans antialiased">
 
-    <div id="main-content" class="container mx-auto p-4 md:p-8">
+<body class = "bg-gray-900 text-white font-sans">
 
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-yellow-400">GPX Power Race</h1>
-            <p class="text-gray-400">Race against your own ghost on real-world courses.</p>
+    <div id = "main-content" class = "container mx-auto p-4">
+        <header class = "text-center mb-6">
+            <h1 class = "text-4xl font-bold text-cyan-400">GPX Power Race</h1>
+            <p class = "text-gray-400">Ride virtual courses against your personal best.</p>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        <!-- Pre-Race Setup -->
+        <div id = "pre-race-setup">
+            <div class = "grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Left Column: Course Selection & Upload -->
+                <div class = "bg-gray-800 p-6 rounded-lg">
+                    <h2 class = "text-2xl font-bold mb-4">Select a Course</h2>
+                    <div id = "course-list" class = "space-y-3 mb-6 h-48 overflow-y-auto"></div>
 
-            <!-- Left Column: Connection & Course Selection -->
-            <div class="bg-gray-800 p-6 rounded-lg shadow-xl">
-                <div id="pre-race-setup">
-                    <!-- Connection -->
-                    <div class="mb-6 pb-6 border-b border-gray-700">
-                        <h2 class="text-2xl font-semibold mb-3">1. Connect</h2>
-                        <div class="flex items-center justify-between bg-gray-700 p-4 rounded-lg">
-                            <div>
-                                <h3 class="font-semibold">Bluetooth Smart Trainer</h3>
-                                <p id="bluetooth-status" class="text-sm text-red-400">Disconnected</p>
-                            </div>
-                            <button id="connect-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300">Connect</button>
-                        </div>
-                         <p class="text-center text-gray-400 my-2">OR</p>
-                        <button id="simulator-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300">Use Simulator</button>
+                    <h3 class = "text-xl font-bold mb-2">Upload a New Course</h3>
+                    <input type = "file" id = "gpx-upload" class = "w-full bg-gray-700 p-2 rounded-lg" accept = ".gpx">
+                    <p id = "gpx-file-name" class = "text-sm text-gray-500 mt-2"></p>
+                </div>
+
+                <!-- Right Column: Racer & Device Setup -->
+                <div class = "bg-gray-800 p-6 rounded-lg">
+                    <h2 class = "text-2xl font-bold mb-4">Setup</h2>
+
+                    <!-- Racer Name -->
+                    <div class = "mb-4">
+                        <label for = "racer-name-input" class = "block text-lg mb-2">Your Name:</label>
+                        <input type = "text" id = "racer-name-input" class = "w-full p-2 bg-gray-700 rounded-lg" placeholder = "Enter your name">
+                    </div>
+                    
+                    <!-- Racer Weight -->
+                    <div class = "mb-4">
+                        <label for = "racer-weight-input" class = "block text-lg mb-2">Your Weight (lbs):</label>
+                        <input type = "number" id = "racer-weight-input" class = "w-full p-2 bg-gray-700 rounded-lg" value = "175">
                     </div>
 
-                    <!-- Course Selection -->
-                    <div class="mb-6">
-                        <h2 class="text-2xl font-semibold mb-3">2. Select Course</h2>
-                        <div id="course-list" class="space-y-2 max-h-48 overflow-y-auto mb-4 p-2 bg-gray-900 rounded-md">
-                            <!-- Courses will be loaded here -->
-                        </div>
-                        <div class="bg-gray-700 p-4 rounded-lg">
-                            <h3 class="font-semibold mb-2">Upload New Course</h3>
-                            <input type="file" id="gpx-upload" class="hidden" accept=".gpx"/>
-                            <label for="gpx-upload" class="w-full text-center cursor-pointer bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded transition duration-300 block">Choose GPX File</label>
-                            <p id="gpx-file-name" class="text-sm text-gray-400 mt-2 text-center"></p>
-                        </div>
+
+                    <!-- Device Connection -->
+                    <div class = "flex items-center space-x-4 mb-4">
+                        <button id = "connect-btn" class = "bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg">Connect Trainer</button>
+                        <button id = "simulator-btn" class = "bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg">Use Simulator</button>
+                        <div id = "bluetooth-status" class = "text-red-400">Disconnected</div>
+                    </div>
+                    <div id = "simulator-controls" class = "hidden mb-4">
+                        <p class = "text-sm">Use Arrow Up/Down to control power</p>
+                        <div id = "sim-power-display" class = "text-lg">100 W</div>
                     </div>
 
-                    <!-- Racer Info -->
-                     <div class="mb-6 pb-6 border-b border-gray-700">
-                        <h2 class="text-2xl font-semibold mb-3">3. Racer Info</h2>
-                         <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label for="racer-name-input" class="block text-sm font-medium text-gray-300 mb-1">Name</label>
-                                <input type="text" id="racer-name-input" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-yellow-400" placeholder="Racer Name">
-                            </div>
-                             <div>
-                                <label for="racer-weight-input" class="block text-sm font-medium text-gray-300 mb-1">Weight (lbs)</label>
-                                <input type="number" id="racer-weight-input" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-yellow-400" value="175">
-                            </div>
-                        </div>
-                    </div>
-
-                    <button id="start-race-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg text-xl transition duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed">Start Race</button>
+                    <!-- Start Button -->
+                    <button id = "start-race-btn" class = "w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 px-6 py-3 rounded-lg text-xl font-bold" disabled>Start Race</button>
                 </div>
             </div>
 
-            <!-- Right Column: Course Profile -->
-            <div class="bg-gray-800 p-6 rounded-lg shadow-xl">
-                 <div id="course-profile-section">
-                    <h3 class="text-2xl font-semibold mb-4">Course Profile</h3>
-                     <div id="course-profile-container" class="relative h-40 bg-gray-700 rounded-lg p-2">
-                        <canvas id="course-profile-canvas" class="w-full h-full"></canvas>
-                        <div id="course-profile-placeholder" class="absolute inset-0 flex items-center justify-center text-gray-400">Select a course to see the profile</div>
-                    </div>
-                 </div>
-
-                <div id="record-run-info" class="mt-4 text-center bg-gray-700 p-4 rounded-lg">
-                    <h4 class="font-semibold text-yellow-400">Course Record</h4>
-                    <p><span id="record-holder-name" class="font-bold">N/A</span>: <span id="record-holder-time" class="font-mono">N/A</span></p>
+            <!-- Course Profile & Record -->
+            <div class = "mt-6 bg-gray-800 p-6 rounded-lg">
+                <h2 class = "text-2xl font-bold mb-2">Course Profile</h2>
+                <div id = "course-profile-container" class = "relative h-64 bg-gray-700 rounded-lg">
+                    <canvas id = "course-profile-canvas" class = "w-full h-full"></canvas>
+                    <div id = "course-profile-placeholder" class = "absolute inset-0 flex items-center justify-center text-gray-500">Select a course to see the profile</div>
+                </div>
+                <div class = "mt-4 text-center">
+                    <h3 class = "text-xl">Record Holder</h3>
+                    <p><span id = "record-holder-name" class = "font-bold">N/A</span> - <span id = "record-holder-time">N/A</span></p>
                 </div>
             </div>
         </div>
 
-        <!-- Main Race Display - This will be cloned or shown when the race starts -->
-        <div id="race-display"
-             class="hidden mt-8 grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
-            <div class="bg-gray-700 p-4 rounded-lg">
-                <h4 class="font-semibold text-sm text-gray-400">Power</h4>
-                <p id="power-display" class="text-3xl font-bold">0 W</p>
+        <!-- Race Display -->
+        <div id = "race-display" class = "hidden">
+            <div class = "grid grid-cols-2 md:grid-cols-5 gap-4 bg-gray-800 p-4 rounded-lg text-center mb-4">
+                <div>
+                    <div class = "text-sm text-gray-400">Elapsed Time</div>
+                    <div id = "elapsed-time-display" class = "text-2xl font-bold">00:00:00</div>
+                </div>
+                <div>
+                    <div class = "text-sm text-gray-400">Speed</div>
+                    <div id = "speed-display" class = "text-2xl font-bold">0 mph</div>
+                </div>
+                <div>
+                    <div class = "text-sm text-gray-400">Distance</div>
+                    <div id = "distance-display" class = "text-2xl font-bold">0 mi</div>
+                </div>
+                <div>
+                    <div class = "text-sm text-gray-400">Power</div>
+                    <div id = "power-display" class = "text-2xl font-bold">0 W</div>
+                </div>
+                 <div>
+                    <div class = "text-sm text-gray-400">Gradient</div>
+                    <div id = "gradient-display" class = "text-2xl font-bold">0 %</div>
+                </div>
+                <div>
+                    <div class = "text-sm text-gray-400">Ghost Diff</div>
+                    <div id = "ghost-diff-display" class = "text-2xl font-bold">+0:00</div>
+                </div>
             </div>
-            <div class="bg-gray-700 p-4 rounded-lg">
-                <h4 class="font-semibold text-sm text-gray-400">Speed</h4>
-                <p id="speed-display" class="text-3xl font-bold">0.0 mph</p>
-            </div>
-            <div class="bg-gray-700 p-4 rounded-lg">
-                <h4 class="font-semibold text-sm text-gray-400">Distance</h4>
-                <p id="distance-display" class="text-3xl font-bold">0.00 mi</p>
-            </div>
-            <div class="bg-gray-700 p-4 rounded-lg">
-                <h4 class="font-semibold text-sm text-gray-400">Gradient</h4>
-                <p id="gradient-display" class="text-3xl font-bold">0.0 %</p>
-            </div>
-            <div class="bg-gray-700 p-4 rounded-lg">
-                <h4 class="font-semibold text-sm text-gray-400">Time</h4>
-                <p id="elapsed-time-display" class="text-3xl font-mono">00:00:00</p>
-            </div>
-             <div class="bg-gray-700 p-4 rounded-lg md:col-span-2">
-                <h4 class="font-semibold text-sm text-gray-400">Status</h4>
-                <p id="race-status" class="text-xl font-bold">Waiting to start...</p>
-            </div>
-            <div class="bg-gray-700 p-4 rounded-lg md:col-span-3">
-                <h4 class="font-semibold text-sm text-gray-400">Ghost Diff</h4>
-                 <p id="ghost-diff-display" class="text-2xl font-bold text-gray-400">+0:00</p>
-            </div>
+            <h2 id="race-status" class="text-center text-xl mb-4">Race starting...</h2>
+        </div>
+        
+        <button id="fullscreen-btn" class="hidden fixed bottom-4 right-4 bg-gray-600 p-3 rounded-full z-20">Game View</button>
+
+        <!-- Countdown Timer -->
+        <div id = "countdown-section" class = "hidden fixed inset-0 bg-gray-700 bg-opacity-90 flex flex-col items-center justify-center z-10">
+            <p class = "text-4xl mb-4">Get Ready!</p>
+            <p id = "countdown-timer" class = "text-9xl font-bold">00:10</p>
         </div>
 
     </div>
+    
+    <!-- Game View (for fullscreen) -->
+    <div id="game-view" class="hidden w-screen h-screen bg-black"></div>
 
-    <!-- Fullscreen Game View Container -->
-    <div id="game-view" class="hidden fixed inset-0 bg-gray-900 z-40"></div>
-
-    <!-- Simulator Controls -->
-    <div id="simulator-controls" class="hidden fixed bottom-4 right-4 bg-gray-900 p-4 rounded-lg shadow-lg z-50">
-        <h3 class="font-semibold text-lg mb-2">Simulator</h3>
-        <p class="mb-2">Use Arrow Up/Down to control power.</p>
-        <div class="text-center">
-            <p class="text-3xl font-bold" id="sim-power-display">100 W</p>
-        </div>
-    </div>
-
-    <!-- Countdown Timer -->
-    <div id="countdown-section" class="hidden fixed inset-0 bg-gray-700 bg-opacity-90 flex items-center justify-center z-50">
-        <h2 id="countdown-timer" class="text-9xl font-bold text-white"></h2>
-    </div>
-     <button id="fullscreen-btn" class="hidden fixed bottom-4 left-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded z-50">Game View</button>
-
-
-    <script type="module" src="js/main.js"></script>
+    <script src="js/config.js" type="module"></script>
+    <script src = "js/state.js" type = "module"></script>
+    <script src = "js/physics.js" type = "module"></script>
+    <script src = "js/bluetooth.js" type = "module"></script>
+    <script src = "js/firebase.js" type = "module"></script>
+    <script src = "js/ui.js" type = "module"></script>
+    <script src = "js/main.js" type = "module"></script>
 </body>
+
 </html>
