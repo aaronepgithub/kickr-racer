@@ -15,16 +15,21 @@ import {
     getAuth,
     signInAnonymously
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { firebaseConfig } from './config.js'; // Import the correct config
 
 export const FirebaseController = {
     db: null,
     auth: null,
-    appId: null,
+    appId: null, // Will be set during init
 
     async init() {
         try {
-            // Initialize Firebase with the imported config
+            // Initialize Firebase with the correct public config
+            const firebaseConfig = {
+                apiKey: "AIzaSyDP_g_p-aJ1N_V-RjA4V_p-gO-zYy-Sy8E", // Public demo key
+                authDomain: "gpx-power-race.firebaseapp.com",
+                projectId: "gpx-power-race",
+                appId: "1:927566234661:web:3765e9666931539c391395"
+            };
             const app = initializeApp(firebaseConfig);
             this.db = getFirestore(app);
             this.auth = getAuth(app);
@@ -42,7 +47,6 @@ export const FirebaseController = {
     async getCourses() {
         if (!this.db || !this.appId) return [];
         try {
-            // Use a dynamic path based on the actual appId
             const coursesCol = collection(this.db, `artifacts/${this.appId}/public/data/courses`);
             const courseSnapshot = await getDocs(coursesCol);
             const courseList = courseSnapshot.docs.map(doc => ({
@@ -65,7 +69,7 @@ export const FirebaseController = {
                 totalDistance: courseData.totalDistance,
                 checkpoints: courseData.checkpoints,
                 createdAt: serverTimestamp(),
-                recordRun: null,
+                recordRun: null, // No record run initially
             });
             console.log("Course uploaded with ID: ", docRef.id);
             return docRef.id;
