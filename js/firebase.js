@@ -16,28 +16,29 @@ import {
     signInAnonymously
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+
+const appId = "1:927566234661:web:3765e9666931539c391395";
+
 export const FirebaseController = {
     db: null,
     auth: null,
-    appId: null, // Will be set during init
 
     async init() {
         try {
-            // Initialize Firebase with the correct public config
+            // Initialize Firebase
             const firebaseConfig = {
-                apiKey: "AIzaSyDP_g_p-aJ1N_V-RjA4V_p-gO-zYy-Sy8E", // Public demo key
-                authDomain: "gpx-power-race.firebaseapp.com",
-                projectId: "gpx-power-race",
-                appId: "1:927566234661:web:3765e9666931539c391395"
+                apiKey: "",
+                authDomain: "",
+                projectId: "",
             };
             const app = initializeApp(firebaseConfig);
             this.db = getFirestore(app);
             this.auth = getAuth(app);
-            this.appId = app.options.appId;
 
             // Sign in anonymously
             await signInAnonymously(this.auth);
-            console.log("Signed in anonymously with App ID:", this.appId);
+            console.log("Signed in anonymously");
+
 
         } catch (error) {
             console.error("Firebase initialization failed:", error);
@@ -45,9 +46,9 @@ export const FirebaseController = {
     },
 
     async getCourses() {
-        if (!this.db || !this.appId) return [];
+        if (!this.db) return [];
         try {
-            const coursesCol = collection(this.db, `artifacts/${this.appId}/public/data/courses`);
+            const coursesCol = collection(this.db, `artifacts/${appId}/public/data/courses`);
             const courseSnapshot = await getDocs(coursesCol);
             const courseList = courseSnapshot.docs.map(doc => ({
                 id: doc.id,
@@ -61,9 +62,9 @@ export const FirebaseController = {
     },
 
     async uploadCourse(courseData) {
-        if (!this.db || !this.appId) return null;
+        if (!this.db) return null;
         try {
-            const docRef = await addDoc(collection(this.db, `artifacts/${this.appId}/public/data/courses`), {
+            const docRef = await addDoc(collection(this.db, `artifacts/${appId}/public/data/courses`), {
                 name: courseData.name,
                 gpx: courseData.gpx,
                 totalDistance: courseData.totalDistance,
@@ -80,9 +81,9 @@ export const FirebaseController = {
     },
 
     async saveRaceResult(courseId, runData) {
-        if (!this.db || !this.appId) return;
+        if (!this.db) return;
 
-        const courseRef = doc(this.db, `artifacts/${this.appId}/public/data/courses`, courseId);
+        const courseRef = doc(this.db, `artifacts/${appId}/public/data/courses`, courseId);
         try {
             const courseSnap = await getDoc(courseRef);
             if (!courseSnap.exists()) {
