@@ -1,7 +1,9 @@
 import { state } from './state.js';
 import { BluetoothController } from './bluetooth.js';
+import { FirebaseController } from './firebase.js';
 import { PhysicsController } from './physics.js';
 
+// --- CONSTANTS FOR GAME VIEW ---
 const GAME_VIEW_DISTANCE = 0.5; // miles
 const RIDER_POSITION_PERCENT = 20; // Rider is 20% from the left edge
 
@@ -28,6 +30,7 @@ export const UIController = {
             }
         });
 
+        this.loadCourses();
         this.updateStartRaceButtonState();
         this.drawCourseProfile();
     },
@@ -63,11 +66,13 @@ export const UIController = {
         document.getElementById('sim-power-display').textContent = `${state.simulator.power} W`;
     },
 
-    loadCourses(courses) {
+    async loadCourses() {
         const courseList = document.getElementById('course-list');
+        courseList.innerHTML = '<p>Loading courses...</p>';
+        const courses = await FirebaseController.getCourses();
         courseList.innerHTML = '';
-        if (!courses || courses.length === 0) {
-            courseList.innerHTML = '<p>No courses found. Upload one below!</p>';
+        if (courses.length === 0) {
+            courseList.innerHTML = '<p>No courses found.</p>';
             return;
         }
         courses.forEach(course => {
@@ -115,11 +120,16 @@ export const UIController = {
                 return;
             }
             gpxFileName.textContent = "Uploading...";
-            // This needs to be handled by the main controller
-            // const courseId = await FirebaseController.uploadCourse(result);
-            // This functionality will be moved to main.js
-            document.dispatchEvent(new CustomEvent('course-upload', { detail: result }));
-
+            const courseId = await FirebaseController.uploadCourse(result);
+            if (courseId) {
+                gpxFileName.textContent = "Uploaded!";
+                await this.loadCourses();
+                const courses = await FirebaseController.getCourses();
+                const newCourse = courses.find(c => c.id === courseId);
+                if (newCourse) this.selectCourse(newCourse);
+            } else {
+                gpxFileName.textContent = "Upload failed.";
+            }
         };
         reader.readAsText(file);
     },
@@ -139,6 +149,7 @@ export const UIController = {
         const gameView = document.getElementById('game-view');
         const mainContent = document.getElementById('main-content');
 
+        // Create course profile for game view
         const courseProfile = document.createElement('div');
         courseProfile.id = 'game-course-profile';
         courseProfile.className = 'relative w-full h-full';
@@ -146,10 +157,12 @@ export const UIController = {
         canvas.className = 'w-full h-full';
         courseProfile.appendChild(canvas);
 
+        // Create race display for game view
         const raceDisplayClone = document.getElementById('race-display').cloneNode(true);
         raceDisplayClone.id = 'game-race-display';
         raceDisplayClone.className = 'absolute top-4 left-4 right-4 grid grid-cols-2 md:grid-cols-5 gap-4 bg-gray-900 bg-opacity-70 p-4 rounded-lg';
         
+        // Clean up and append
         gameView.innerHTML = '';
         gameView.appendChild(courseProfile);
         gameView.appendChild(raceDisplayClone);
@@ -196,11 +209,21 @@ export const UIController = {
         }
     },
 
-    updatePower() { this.updateRaceInfo('#power-display', `${state.power} W`); },
-    updateSpeed() { this.updateRaceInfo('#speed-display', `${state.speed.toFixed(1)} mph`); },
-    updateDistance() { this.updateRaceInfo('#distance-display', `${state.distanceCovered.toFixed(2)} mi`); },
-    updateGradient() { this.updateRaceInfo('#gradient-display', `${state.gradient.toFixed(1)} %`); },
-    updateElapsedTime() { this.updateRaceInfo('#elapsed-time-display', this.formatTime(state.elapsedTime)); },
+    updatePower() {
+        this.updateRaceInfo('#power-display', `${state.power} W`);
+    },
+    updateSpeed() {
+        this.updateRaceInfo('#speed-display', `${state.speed.toFixed(1)} mph`);
+    },
+    updateDistance() {
+        this.updateRaceInfo('#distance-display', `${state.distanceCovered.toFixed(2)} mi`);
+    },
+    updateGradient() {
+        this.updateRaceInfo('#gradient-display', `${state.gradient.toFixed(1)} %`);
+    },
+    updateElapsedTime() {
+        this.updateRaceInfo('#elapsed-time-display', this.formatTime(state.elapsedTime));
+    },
 
     updateRaceInfo(selector, text) {
         const el = state.gameViewActive ? document.querySelector(`#game-race-display ${selector}`) : document.querySelector(selector);
@@ -242,12 +265,13 @@ export const UIController = {
         const canvas = state.gameViewActive ? document.querySelector('#game-course-profile canvas') : document.getElementById('course-profile-canvas');
         const placeholder = state.gameViewActive ? null : document.getElementById('course-profile-placeholder');
 
-        if (!canvas) return;
+        if (!canvas) return; 
+
         if (!state.gpxData || state.gpxData.length === 0) {
-            if (placeholder) placeholder.classList.remove('hidden');
+            if(placeholder) placeholder.classList.remove('hidden');
             return;
         }
-        if (placeholder) placeholder.classList.add('hidden');
+        if(placeholder) placeholder.classList.add('hidden');
 
         if (state.gameViewActive) {
             this.drawGameViewProfile(canvas);
@@ -273,7 +297,7 @@ export const UIController = {
         const minEle = Math.min(...elevations);
         const eleRange = Math.max(...elevations) - minEle || 1;
 
-        ctx.fillStyle = '#374151';
+        ctx.fillStyle = '#374151'; // bg-gray-700
         ctx.fillRect(0, 0, width, height);
 
         const getCoords = (p) => {
@@ -288,7 +312,7 @@ export const UIController = {
             ctx.lineTo(getCoords(state.gpxData[i]).x, getCoords(state.gpxData[i]).y);
         }
 
-        ctx.strokeStyle = '#FBBF24';
+        ctx.strokeStyle = '#FBBF24'; // amber-400
         ctx.lineWidth = 3;
         ctx.stroke();
     },
@@ -307,16 +331,19 @@ export const UIController = {
         const padding = 20;
 
         const distBehind = GAME_VIEW_DISTANCE * (RIDER_POSITION_PERCENT / 100);
-        const windowStart = state.distanceCovered - distBehind;
+        const distAhead = GAME_VIEW_DISTANCE * (1 - RIDER_POSITION_PERCENT / 100);
 
-        const visiblePoints = state.gpxData.filter(p => p.startDistance >= windowStart - 0.1 && p.startDistance <= state.distanceCovered + GAME_VIEW_DISTANCE - distBehind + 0.1);
+        const windowStart = state.distanceCovered - distBehind;
+        const windowEnd = state.distanceCovered + distAhead;
+
+        const visiblePoints = state.gpxData.filter(p => p.startDistance >= windowStart - 0.1 && p.startDistance <= windowEnd + 0.1);
         if (visiblePoints.length < 2) return;
 
         const elevations = visiblePoints.map(p => p.ele);
         state.gameView.minEle = Math.min(...elevations);
         state.gameView.eleRange = Math.max(...elevations) - state.gameView.minEle || 1;
 
-        ctx.fillStyle = '#111827';
+        ctx.fillStyle = '#111827'; // bg-gray-900
         ctx.fillRect(0, 0, width, height);
 
         const getGameCoords = (p) => {
@@ -325,9 +352,10 @@ export const UIController = {
             return { x, y };
         };
 
+        // Gradient fill
         const gradient = ctx.createLinearGradient(0, 0, 0, height);
-        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
-        gradient.addColorStop(1, 'rgba(17, 24, 39, 0.1)');
+        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)'); // blue-500
+        gradient.addColorStop(1, 'rgba(17, 24, 39, 0.1)'); // gray-900
         ctx.fillStyle = gradient;
         ctx.beginPath();
         const firstPoint = getGameCoords(visiblePoints[0]);
@@ -341,6 +369,7 @@ export const UIController = {
         ctx.closePath();
         ctx.fill();
 
+        // Line stroke
         ctx.beginPath();
         ctx.moveTo(firstPoint.x, firstPoint.y);
         for (let i = 1; i < visiblePoints.length; i++) {
@@ -374,9 +403,13 @@ export const UIController = {
             dot = document.createElement('div');
             dot.id = `dot-${id}`;
             dot.textContent = emoji;
-            dot.className = 'absolute text-4xl';
-            dot.style.transform = 'translate(-50%, -90%)';
-            dot.style.zIndex = '10';
+            dot.className = 'absolute text-8xl';
+            if (id === 'rider') {
+                dot.style.transform = 'translate(-50%, -90%) scaleX(-1)';
+            } else {
+                dot.style.transform = 'translate(-50%, -90%)';
+            }
+             dot.style.zIndex = '10';
             container.appendChild(dot);
         }
         return dot;
@@ -414,7 +447,7 @@ export const UIController = {
 
         const leftPercent = ((distance - windowStart) / GAME_VIEW_DISTANCE) * 100;
 
-        if (leftPercent < -10 || leftPercent > 110) {
+        if (leftPercent < -10 || leftPercent > 110) { // Hide if far off-screen
             dot.style.display = 'none';
             return;
         }
