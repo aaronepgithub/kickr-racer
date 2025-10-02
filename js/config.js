@@ -1,6 +1,10 @@
 export const firebaseConfig = {
-    apiKey: "AIzaSyDP_g_p-aJ1N_V-RjA4V_p-gO-zYy-Sy8E", // Public demo key
-    authDomain: "gpx-power-race.firebaseapp.com",
-    projectId: "gpx-power-race",
-    appId: "1:927566234661:web:3765e9666931539c391395"
+    apiKey: "AIzaSyCY-RqfO0XUcRkZ7OBLDtMm-e-jVJyLrQ0",
+    authDomain: "kickr-racer.firebaseapp.com",
+    projectId: "kickr-racer",
+    storageBucket: "kickr-racer.appspot.com",
+    messagingSenderId: "433608140491",
+    appId: "1:433608140491:web:d5d736f7d6cfdeaf7edd4e"
 };
+
+export const appId = 'default-app-id';
