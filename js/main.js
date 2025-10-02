@@ -24,8 +24,14 @@ async function gameLoop(timestamp) {
             state.gradient = currentPos.gradient;
         }
 
-        if (state.trainer.connected && !state.simulator.active) {
-            BluetoothController.setGradient(state.gradient);
+        state.gradientBuffer.push(state.gradient);
+        if (timestamp - state.lastGradientUpdateTime > 10000) { // 10 seconds
+            const avgGradient = state.gradientBuffer.reduce((a, b) => a + b, 0) / state.gradientBuffer.length;
+            if (state.trainer.connected && !state.simulator.active && state.gradientBuffer.length > 0) {
+                BluetoothController.setGradient(avgGradient);
+            }
+            state.gradientBuffer = [];
+            state.lastGradientUpdateTime = timestamp;
         }
 
         const speedMps = PhysicsController.calculateSpeedMps(state.power, state.gradient, state.riderWeightLbs);
@@ -42,7 +48,15 @@ async function gameLoop(timestamp) {
 
         if (state.course && state.course.recordRun) {
             state.ghostDistanceCovered = PhysicsController.getGhostDistance(state.elapsedTime);
-            if (!state.raceFinished) {
+            
+            if (state.ghostDistanceCovered >= state.totalDistance && !state.ghostFinished) {
+                state.ghostFinished = true;
+                state.ghostFinishTime = state.course.recordRun.totalTime;
+                const statusEl = state.gameViewActive ? document.querySelector('#game-race-display #race-status') : document.getElementById('race-status');
+                if(statusEl) statusEl.textContent = `Ghost finished in ${UIController.formatTime(state.ghostFinishTime)}!`
+            }
+
+            if (!state.raceFinished && !state.ghostFinished) {
                 const ghostTimeAtUserDistance = PhysicsController.getGhostTimeAtDistance(state.distanceCovered);
                 const diff = state.elapsedTime - ghostTimeAtUserDistance;
                 UIController.updateGhostDiff(diff);
@@ -51,8 +65,12 @@ async function gameLoop(timestamp) {
 
         if (state.distanceCovered >= state.totalDistance) {
             state.raceFinished = true;
+            const statusEl = state.gameViewActive ? document.querySelector('#game-race-display #race-status') : document.getElementById('race-status');
+            if(statusEl) statusEl.textContent = "You Finished!";
+
             const isNewRecord = !state.course.recordRun || state.elapsedTime < state.course.recordRun.totalTime;
             if (isNewRecord) {
+                if(statusEl) statusEl.textContent = "New Record!";
                 const raceData = {
                     runnerName: document.getElementById('racer-name-input').value,
                     totalTime: state.elapsedTime,
@@ -80,6 +98,30 @@ async function gameLoop(timestamp) {
 async function main() {
     await FirebaseController.init();
     UIController.init();
+
+    const courses = await FirebaseController.getCourses();
+    UIController.loadCourses(courses);
+
+    document.addEventListener('course-upload', async (e) => {
+        const gpxData = e.detail;
+        const gpxFileName = document.getElementById('gpx-file-name');
+
+        gpxFileName.textContent = "Uploading...";
+        const courseId = await FirebaseController.uploadCourse(gpxData);
+
+        if (courseId) {
+            gpxFileName.textContent = "Uploaded!";
+            const updatedCourses = await FirebaseController.getCourses();
+            UIController.loadCourses(updatedCourses);
+            const newCourse = updatedCourses.find(c => c.id === courseId);
+            if (newCourse) {
+                UIController.selectCourse(newCourse);
+            }
+        } else {
+            gpxFileName.textContent = "Upload failed.";
+        }
+    });
+
     requestAnimationFrame(gameLoop);
 }
 
