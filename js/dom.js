@@ -6,8 +6,8 @@ export const DOMElements = {
     mainContent: document.getElementById('main-content'),
     gameView: document.getElementById('game-view'),
 
-    bluetoothStatus: document.getElementById('bluetooth-status').querySelector('p:last-child'),
-    raceStatus: document.getElementById('race-status').querySelector('p:last-child'),
+    bluetoothStatus: document.getElementById('bluetooth-status'),
+    raceStatus: document.getElementById('race-status'),
 
     // Pre-Race
     preRaceSetup: document.getElementById('pre-race-setup'),
