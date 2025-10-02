@@ -1,36 +1,48 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import {
+    initializeApp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+    getFirestore,
+    collection,
+    getDocs,
+    addDoc,
+    serverTimestamp,
+    doc,
+    getDoc,
+    updateDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+    getAuth,
+    signInAnonymously
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, getDoc, updateDoc, serverTimestamp, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-
-import { firebaseConfig, appId } from './config.js';
-import { state } from './state.js';
-import { DOMElements } from './dom.js';
-import { UIController } from './ui.js';
+const appId = "1:927566234661:web:3765e9666931539c391395";
 
 export const FirebaseController = {
     db: null,
     auth: null,
 
     async init() {
-
         try {
+            // Initialize Firebase
+            const firebaseConfig = {
+                apiKey: "",
+                authDomain: "",
+                projectId: "",
+            };
             const app = initializeApp(firebaseConfig);
             this.db = getFirestore(app);
             this.auth = getAuth(app);
 
-            await this.authenticate();
+            // Sign in anonymously
+            await signInAnonymously(this.auth);
+            console.log("Signed in anonymously");
+
+
         } catch (error) {
             console.error("Firebase initialization failed:", error);
-            DOMElements.raceStatus.textContent = "Firebase Error";
         }
-    },
-
-    authenticate() {
-        return signInAnonymously(this.auth).catch(error => {
-            console.error("Anonymous sign-in failed:", error);
-        });
     },
 
     async getCourses() {
@@ -38,10 +50,13 @@ export const FirebaseController = {
         try {
             const coursesCol = collection(this.db, `artifacts/${appId}/public/data/courses`);
             const courseSnapshot = await getDocs(coursesCol);
-            const courseList = courseSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const courseList = courseSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
             return courseList;
         } catch (e) {
-            console.error("Error fetching courses: ", e);
+            console.error("Error getting courses: ", e);
             return [];
         }
     },
@@ -51,7 +66,7 @@ export const FirebaseController = {
         try {
             const docRef = await addDoc(collection(this.db, `artifacts/${appId}/public/data/courses`), {
                 name: courseData.name,
-                gpx: JSON.stringify(courseData.route),
+                gpx: courseData.gpx,
                 totalDistance: courseData.totalDistance,
                 checkpoints: courseData.checkpoints,
                 createdAt: serverTimestamp(),
@@ -65,7 +80,7 @@ export const FirebaseController = {
         }
     },
 
-    async saveRun(courseId, runData) {
+    async saveRaceResult(courseId, runData) {
         if (!this.db) return;
 
         const courseRef = doc(this.db, `artifacts/${appId}/public/data/courses`, courseId);
@@ -80,20 +95,13 @@ export const FirebaseController = {
             const currentRecord = courseData.recordRun;
 
             if (!currentRecord || runData.totalTime < currentRecord.totalTime) {
-                // New record!
+                console.log("New record! Saving run data...");
                 await updateDoc(courseRef, {
-                    recordRun: {
-                        runnerName: runData.runnerName,
-                        totalTime: runData.totalTime,
-                        checkpointTimes: runData.checkpointTimes,
-                        achievedAt: serverTimestamp(),
-                    }
+                    recordRun: runData
                 });
-                console.log("New record set for course:", courseId);
-                UIController.displayNewRecordMessage(runData.runnerName);
             }
-        } catch (e) {
-            console.error("Error saving run: ", e);
+        } catch (error) {
+            console.error("Error saving race result: ", error);
         }
     }
 };
