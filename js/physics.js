@@ -62,33 +62,6 @@ export const PhysicsController = {
         }
     },
 
-    getGhostTimeAtDistance(distance) {
-        if (!state.course.recordRun || !state.course.recordRun.checkpointTimes || state.course.recordRun.checkpointTimes.length === 0) {
-            return 0;
-        }
-
-        const recordTimes = [{ percent: 0, time: 0, distance: 0 }, ...state.course.recordRun.checkpointTimes];
-        let ghostSegmentIndex = recordTimes.findIndex(ct => ct.distance > distance) - 1;
-
-        if (ghostSegmentIndex === -2) { // Distance is beyond the end of the course
-            return state.course.recordRun.totalTime;
-        }
-        if (ghostSegmentIndex < 0) {
-            ghostSegmentIndex = 0;
-        }
-
-        const startCp = recordTimes[ghostSegmentIndex];
-        const endCp = recordTimes[ghostSegmentIndex + 1];
-        if (!endCp) return startCp.time;
-
-        const segmentDistance = endCp.distance - startCp.distance;
-        const distIntoSegment = distance - startCp.distance;
-        const percentIntoSegment = segmentDistance > 0 ? distIntoSegment / segmentDistance : 0;
-        
-        const segmentTime = endCp.time - startCp.time;
-        return startCp.time + (percentIntoSegment * segmentTime);
-    },
-
      parseGPX(gpxString, fileName) {
 
         const parser = new DOMParser();

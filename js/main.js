@@ -1,113 +1,114 @@
 import { state } from './state.js';
-import { UIController } from './ui.js';
-import { PhysicsController } from './physics.js';
-import { BluetoothController } from './bluetooth.js';
+import { DOMElements } from './dom.js';
 import { FirebaseController } from './firebase.js';
+import { BluetoothController } from './bluetooth.js';
+import { PhysicsController } from './physics.js';
+import { UIController } from './ui.js';
 
-let lastTimestamp = 0;
+// --- MAIN GAME LOOP ---
+let lastUpdateTime = Date.now();
 
-async function gameLoop(timestamp) {
-    if (!lastTimestamp) {
-        lastTimestamp = timestamp;
-        requestAnimationFrame(gameLoop);
-        return;
+function gameLoop() {
+    const now = Date.now();
+    const deltaTime = (now - lastUpdateTime) / 1000; // seconds
+    lastUpdateTime = now;
+
+    // Always redraw the course profile in game view for a smooth scroll
+    if (state.gameViewActive) {
+        UIController.drawCourseProfile();
     }
 
-    const deltaTime = (timestamp - lastTimestamp) / 1000; // seconds
-    lastTimestamp = timestamp;
+    if (state.trainer.connected && state.raceStarted && state.gpxData) {
+        // Use simulator power if active
+        if (state.simulator.active) {
+            state.power = state.simulator.power;
+        }
 
-    if (state.raceStarted && !state.raceFinished) {
+        // --- Physics and State Updates ---
+        const speedMps = PhysicsController.calculateSpeedMps(state.power, state.gradient, state.riderWeightLbs);
+        state.speed = speedMps * 2.23694; // Convert m/s to mph
         state.elapsedTime += deltaTime;
 
-        const currentPos = PhysicsController.getPointAtDistance(state.distanceCovered);
-        if (currentPos) {
-            state.gradient = currentPos.gradient;
+        if (state.speed > 0) {
+            const distanceThisFrame = (state.speed / 3600) * deltaTime; // distance in miles
+            state.distanceCovered = Math.min(state.totalDistance, state.distanceCovered + distanceThisFrame);
         }
 
-        // --- Gradient Throttling ---
-        state.gradientBuffer.push(state.gradient);
-        if (timestamp - state.lastGradientUpdateTime > 10000) { // 10 seconds
-            const avgGradient = state.gradientBuffer.reduce((a, b) => a + b, 0) / state.gradientBuffer.length;
-            if (state.trainer.connected && !state.simulator.active) {
-                BluetoothController.setGradient(avgGradient);
-            }
-            state.gradientBuffer = [];
-            state.lastGradientUpdateTime = timestamp;
-        }
-
-        // In simulator mode, power is controlled by keys. Otherwise, it's read from the trainer.
-        if (state.simulator.active) {
-            // Power is already set in state via keydown events
-        } else {
-            // Power is updated by the Bluetooth controller
-        }
-
-        const speedMps = PhysicsController.calculateSpeedMps(state.power, state.gradient, state.riderWeightLbs);
-        state.speed = speedMps * 2.23694; // m/s to mph
-        state.distanceCovered += (state.speed * 1.60934 / 3600) * deltaTime; // distance in miles
-
-        // --- Checkpoint Tracking ---
-        if (state.course.checkpoints && state.nextCheckpointIndex < state.course.checkpoints.length) {
-            const nextCheckpoint = state.course.checkpoints[state.nextCheckpointIndex];
-            if (state.distanceCovered >= nextCheckpoint.distance) {
-                state.checkpointTimes.push({ distance: nextCheckpoint.distance, time: state.elapsedTime });
-                state.nextCheckpointIndex++;
-            }
-        }
-
-        // --- Ghost Logic ---
-        if (state.course && state.course.recordRun) {
+        // --- Ghost Position Calculation ---
+        if (state.course.recordRun) {
             state.ghostDistanceCovered = PhysicsController.getGhostDistance(state.elapsedTime);
-            
-            if (state.ghostDistanceCovered >= state.totalDistance && !state.ghostFinished) {
-                state.ghostFinished = true;
-                state.ghostFinishTime = state.course.recordRun.totalTime;
-                const statusEl = state.gameViewActive ? document.querySelector('#game-race-display #race-status') : document.getElementById('race-status');
-                if(statusEl) statusEl.textContent = `Ghost finished in ${UIController.formatTime(state.ghostFinishTime)}!`
-            }
-
-            if (!state.ghostFinished) {
-                const ghostTimeAtUserDistance = PhysicsController.getGhostTimeAtDistance(state.distanceCovered);
-                const diff = state.elapsedTime - ghostTimeAtUserDistance;
-                UIController.updateGhostDiff(diff);
-            }
         }
 
-        // --- Finish Line Logic ---
-        if (state.distanceCovered >= state.totalDistance) {
-            state.raceFinished = true;
-            
-            const statusEl = state.gameViewActive ? document.querySelector('#game-race-display #race-status') : document.getElementById('race-status');
-            if(statusEl) statusEl.textContent = "You Finished!";
-
-            const isNewRecord = !state.course.recordRun || state.elapsedTime < state.course.recordRun.totalTime;
-            if (isNewRecord) {
-                if(statusEl) statusEl.textContent = "New Record!";
-                const raceData = {
-                    runnerName: state.racerName,
-                    totalTime: state.elapsedTime,
-                    checkpointTimes: state.checkpointTimes
-                };
-                await FirebaseController.saveRaceResult(state.course.id, raceData);
-            }
-        }
-    }
-
-    // --- UI Updates ---
-    if (state.raceStarted) {
+        // --- UI Updates ---
         UIController.updatePower();
         UIController.updateSpeed();
         UIController.updateDistance();
-        UIController.updateGradient();
         UIController.updateElapsedTime();
-        UIController.drawCourseProfile();
         UIController.updateRacerDots();
+        UIController.updateGradient();
+
+        // --- Ghost Time Diff Calculation ---
+        if (state.course.recordRun && state.ghostDistanceCovered > 0) {
+            const distanceDiff = state.distanceCovered - state.ghostDistanceCovered; // in miles
+            let timeDiff = 0;
+            if (state.speed > 1) {
+                 const playerSpeedMph = state.speed;
+                 const timeToCoverDiff_hours = distanceDiff / playerSpeedMph;
+                 timeDiff = timeToCoverDiff_hours * 3600; // convert to seconds
+            }
+            UIController.updateGhostDiff(timeDiff);
+        }
+
+        // --- Checkpoint Logic for saving the run ---
+        const nextCheckpoint = state.course.checkpoints[state.nextCheckpointIndex];
+        if (nextCheckpoint && state.distanceCovered >= nextCheckpoint.distance) {
+            state.checkpointTimes.push({
+                percent: nextCheckpoint.percent,
+                time: state.elapsedTime,
+                distance: nextCheckpoint.distance
+            });
+            state.nextCheckpointIndex++;
+        }
+
+        // --- Gradient Updates ---
+        const currentPoint = PhysicsController.getPointAtDistance(state.distanceCovered);
+        if (currentPoint) {
+            const newGradient = currentPoint.gradient / 2; // Use 50% of the actual gradient
+            if (Math.abs(newGradient - state.gradient) > 0.1) {
+                state.gradient = newGradient;
+                // Only send bluetooth command if not in simulator mode
+                if (!state.simulator.active) {
+                    BluetoothController.setGradient(state.gradient);
+                }
+            }
+        }
+
+        // --- Finish Race Logic ---
+        if (state.distanceCovered >= state.totalDistance && !state.raceFinished) {
+            state.raceFinished = true; // Prevent this block from running multiple times
+            state.raceStarted = false;
+            DOMElements.raceStatus.textContent = "Finished!";
+
+            const runData = {
+                runnerName: DOMElements.racerNameInput.value.trim(),
+                totalTime: state.elapsedTime,
+                checkpointTimes: state.checkpointTimes
+            };
+            FirebaseController.saveRun(state.course.id, runData);
+        }
+
     }
 
     requestAnimationFrame(gameLoop);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// --- INITIALIZATION ---
+function init() {
     UIController.init();
-    requestAnimationFrame(gameLoop);
-});
+    FirebaseController.init().then(() => {
+        UIController.loadCourses();
+    });
+    gameLoop(); // Start the loop
+}
+
+init();

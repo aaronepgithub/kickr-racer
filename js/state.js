@@ -30,17 +30,10 @@ export const state = {
 
     // Ghost data for comparison
     ghostDistanceCovered: 0,
-    ghostFinished: false,
-    ghostFinishTime: null,
-
 
     // Checkpoint tracking for the current run
     checkpointTimes: [],
     nextCheckpointIndex: 0,
-
-    // Gradient smoothing
-    lastGradientUpdateTime: 0,
-    gradientBuffer: [],
 
     // Trainer connection
     trainer: {
