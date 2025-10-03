@@ -225,6 +225,10 @@ export const UIController = {
         this.updateRaceInfo('#elapsed-time-display', this.formatTime(state.elapsedTime));
     },
 
+    updateRaceStatus(message) {
+        this.updateRaceInfo('#race-status', message);
+    },
+
     updateRaceInfo(selector, text) {
         const el = state.gameViewActive ? document.querySelector(`#game-race-display ${selector}`) : document.querySelector(selector);
         if (el) el.textContent = text;

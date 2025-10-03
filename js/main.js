@@ -73,21 +73,39 @@ function gameLoop() {
         // --- Gradient Updates ---
         const currentPoint = PhysicsController.getPointAtDistance(state.distanceCovered);
         if (currentPoint) {
-            const newGradient = currentPoint.gradient / 2; // Use 50% of the actual gradient
-            if (Math.abs(newGradient - state.gradient) > 0.1) {
-                state.gradient = newGradient;
-                // Only send bluetooth command if not in simulator mode
-                if (!state.simulator.active) {
-                    BluetoothController.setGradient(state.gradient);
+            state.targetGradient = currentPoint.gradient / 2; // Use 50% of the actual gradient
+        }
+
+        // Smooth the gradient for UI display
+        const smoothingFactor = 0.05; // Lower is smoother
+        state.gradient += (state.targetGradient - state.gradient) * smoothingFactor;
+        state.gradientSamples.push(state.targetGradient);
+
+        // Throttle bluetooth commands to every 5 seconds
+        const GRADIENT_UPDATE_INTERVAL = 5000; // ms
+        if (now - state.lastGradientUpdateTime > GRADIENT_UPDATE_INTERVAL) {
+            if (state.gradientSamples.length > 0) {
+                const averageGradient = state.gradientSamples.reduce((a, b) => a + b, 0) / state.gradientSamples.length;
+                
+                // Only send if the change is significant enough to matter
+                if (Math.abs(averageGradient - state.lastSentAverageGradient) > 0.1) {
+                    if (!state.simulator.active) {
+                        BluetoothController.setGradient(averageGradient);
+                    }
+                    state.lastSentAverageGradient = averageGradient;
                 }
+                
+                state.gradientSamples = []; // Clear samples for the next interval
+                state.lastGradientUpdateTime = now;
             }
         }
 
         // --- Finish Race Logic ---
-        if (state.distanceCovered >= state.totalDistance && !state.raceFinished) {
-            state.raceFinished = true; // Prevent this block from running multiple times
-            state.raceStarted = false;
-            DOMElements.raceStatus.textContent = "Finished!";
+        // Check if the rider has finished
+        if (state.distanceCovered >= state.totalDistance && !state.riderFinished) {
+            state.riderFinished = true;
+            UIController.updateRaceStatus("You've Finished! Waiting for ghost...");
+            console.log("Rider finished the race.");
 
             const runData = {
                 runnerName: DOMElements.racerNameInput.value.trim(),
@@ -95,6 +113,20 @@ function gameLoop() {
                 checkpointTimes: state.checkpointTimes
             };
             FirebaseController.saveRun(state.course.id, runData);
+        }
+
+        // Check if the ghost has finished
+        if (state.course.recordRun && state.ghostDistanceCovered >= state.totalDistance && !state.ghostFinished) {
+            state.ghostFinished = true;
+            console.log("Ghost finished the race.");
+        }
+
+        // Check if both have finished to end the race
+        if (state.riderFinished && (state.ghostFinished || !state.course.recordRun) && !state.raceFinished) {
+            state.raceFinished = true; // Prevent this block from running multiple times
+            state.raceStarted = false;
+            UIController.updateRaceStatus("Race Complete!");
+            console.log("Race complete! Notification should be visible.");
         }
 
     }

@@ -12,13 +12,19 @@ export const state = {
     distanceCovered: 0,
     speed: 0,
     power: 0,
-    gradient: 0,
+    gradient: 0, // The current, smoothed gradient
+    targetGradient: 0, // The actual gradient from the course data
+    lastSentAverageGradient: 0, // The last average gradient value sent to the trainer
+    lastGradientUpdateTime: 0,
+    gradientSamples: [], // Samples for averaging gradient
     elapsedTime: 0,
     riderWeightLbs: 175,
 
     // Race state
     raceStarted: false,
-    raceFinished: false,
+    raceFinished: false, // True when both rider and ghost are done
+    riderFinished: false,
+    ghostFinished: false,
     gameViewActive: false,
     countdownInterval: null,
 
