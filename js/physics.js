@@ -138,7 +138,7 @@ export const PhysicsController = {
 
         return {
             name: courseName,
-            gpx: JSON.stringify(routeData),
+            route: routeData,
             totalDistance: totalDistanceMiles,
             checkpoints: checkpoints,
         };
