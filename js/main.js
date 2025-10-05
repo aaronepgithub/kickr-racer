@@ -39,6 +39,45 @@ function gameLoop() {
             state.ghostDistanceCovered = PhysicsController.getGhostDistance(state.elapsedTime);
         }
 
+        // --- Villain Logic ---
+        state.villain.timeSinceLastVillian += deltaTime;
+
+        // 1. Villain Spawning
+        if (!state.villain.active && state.elapsedTime > state.villain.nextAppearanceTime && state.villain.timeSinceLastVillian > 30) {
+            state.villain.active = true;
+            state.villain.power = state.power;
+            state.villain.distanceCovered = state.distanceCovered;
+            state.villain.appearanceTime = state.elapsedTime;
+            state.villain.timeSinceLastVillian = 0;
+            // Appearance every 30 seconds, with up to 1 minute of randomness
+            state.villain.nextAppearanceTime = state.elapsedTime + 30 + Math.random() * 60;
+            console.log("Villain appeared!");
+        }
+
+        // 2. Villain Active Logic
+        if (state.villain.active) {
+            const timeSinceAppearance = state.elapsedTime - state.villain.appearanceTime;
+
+            // Add power after 3 seconds
+            if (timeSinceAppearance > 3) {
+                state.villain.power = state.power + 20;
+            }
+
+            // Calculate villain's speed and distance
+            const villainSpeedMps = PhysicsController.calculateSpeedMps(state.villain.power, state.gradient, state.riderWeightLbs);
+            const villainSpeedMph = villainSpeedMps * 2.23694;
+            if (villainSpeedMph > 0) {
+                const villainDistanceThisFrame = (villainSpeedMph / 3600) * deltaTime;
+                state.villain.distanceCovered += villainDistanceThisFrame;
+            }
+
+            // 3. Villain Despawning
+            if (timeSinceAppearance > 20) {
+                state.villain.active = false;
+                console.log("Villain disappeared!");
+            }
+        }
+
         // --- UI Updates ---
         UIController.updatePower();
         UIController.updateSpeed();

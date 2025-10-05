@@ -55,4 +55,14 @@ export const state = {
         active: false,
         power: 100, // starting power
     },
+
+    // Villain state
+    villain: {
+        active: false,
+        power: 0,
+        distanceCovered: 0,
+        appearanceTime: 0,
+        timeSinceLastVillian: 0,
+        nextAppearanceTime: 120, // Time for the next villain to appear
+    },
 };

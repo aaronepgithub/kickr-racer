@@ -264,7 +264,7 @@ export const UIController = {
     },
 
     startCountdown() {
-        let count = 10;
+        let count = 3;
         const countdownTimer = document.getElementById('countdown-timer');
         const countdownSection = document.getElementById('countdown-section');
         const update = () => {
@@ -320,7 +320,7 @@ export const UIController = {
 
         const elevations = state.gpxData.map(p => p.ele);
         const minEle = Math.min(...elevations);
-        const eleRange = Math.max(...elevations) - minEle || 1;
+        const eleRange = (Math.max(...elevations) - minEle || 1) * 2;
 
         ctx.fillStyle = '#374151'; // bg-gray-700
         ctx.fillRect(0, 0, width, height);
@@ -366,7 +366,7 @@ export const UIController = {
 
         const elevations = visiblePoints.map(p => p.ele);
         state.gameView.minEle = Math.min(...elevations);
-        state.gameView.eleRange = Math.max(...elevations) - state.gameView.minEle || 1;
+        state.gameView.eleRange = (Math.max(...elevations) - state.gameView.minEle || 1) * 2;
 
         ctx.fillStyle = '#111827'; // bg-gray-900
         ctx.fillRect(0, 0, width, height);
@@ -419,6 +419,17 @@ export const UIController = {
                  const ghostDot = document.getElementById('dot-ghost');
                  if (ghostDot) ghostDot.style.display = 'none';
             }
+        }
+
+        if (state.villain.active) {
+            if (state.gameViewActive) {
+                this._updateGameViewDot('villain', state.villain.distanceCovered, '😈');
+            } else {
+                this._updateStaticDot('villain', state.villain.distanceCovered, '😈');
+            }
+        } else {
+            const villainDot = document.getElementById('dot-villain');
+            if (villainDot) villainDot.style.display = 'none';
         }
     },
 
