@@ -22,6 +22,13 @@ export const UIController = {
         });
         document.getElementById('start-race-btn').addEventListener('click', () => this.startRace());
 
+        document.getElementById('simulator-power-slider').addEventListener('input', (e) => {
+            if (state.simulator.active) {
+                state.simulator.power = parseInt(e.target.value, 10);
+                this.updateSimPowerDisplay();
+            }
+        });
+
         document.addEventListener('keydown', (e) => {
             if (state.simulator.active) {
                 if (e.key === 'ArrowUp') state.simulator.power += 10;
@@ -32,18 +39,25 @@ export const UIController = {
 
         this.loadCourses();
         this.updateStartRaceButtonState();
-        this.drawCourseProfile();
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && state.simulator.active) {
+                document.body.appendChild(document.getElementById('simulator-controls'));
+                document.body.appendChild(document.getElementById('simulator-power-slider-container'));
+            }
+        });
     },
 
     toggleSimulator() {
         state.simulator.active = !state.simulator.active;
         const simulatorControls = document.getElementById('simulator-controls');
+        const simulatorSlider = document.getElementById('simulator-power-slider-container');
         const bluetoothStatus = document.getElementById('bluetooth-status');
         const connectBtn = document.getElementById('connect-btn');
         const simulatorBtn = document.getElementById('simulator-btn');
         
         if (state.simulator.active) {
             simulatorControls.classList.remove('hidden');
+            simulatorSlider.classList.remove('hidden');
             bluetoothStatus.textContent = "Simulator Active";
             bluetoothStatus.classList.add("text-purple-400");
             bluetoothStatus.classList.remove("text-red-400");
@@ -52,6 +66,7 @@ export const UIController = {
             simulatorBtn.textContent = "Disable Simulator";
         } else {
             simulatorControls.classList.add('hidden');
+            simulatorSlider.classList.add('hidden');
             bluetoothStatus.textContent = "Disconnected";
             bluetoothStatus.classList.add("text-red-400");
             bluetoothStatus.classList.remove("text-purple-400");
@@ -64,6 +79,7 @@ export const UIController = {
 
     updateSimPowerDisplay() {
         document.getElementById('sim-power-display').textContent = `${state.simulator.power} W`;
+        document.getElementById('simulator-power-slider').value = state.simulator.power;
     },
 
     async loadCourses() {
@@ -166,6 +182,11 @@ export const UIController = {
         gameView.innerHTML = '';
         gameView.appendChild(courseProfile);
         gameView.appendChild(raceDisplayClone);
+
+        if (state.simulator.active) {
+            gameView.appendChild(document.getElementById('simulator-controls'));
+            gameView.appendChild(document.getElementById('simulator-power-slider-container'));
+        }
 
         mainContent.classList.add('hidden');
         gameView.classList.remove('hidden');
