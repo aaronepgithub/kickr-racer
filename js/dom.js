@@ -43,6 +43,7 @@ export const DOMElements = {
     villainNameDisplay: document.getElementById('villain-name-display'),
     villainPowerDisplay: document.getElementById('villain-power-display'),
     villainTimeDisplay: document.getElementById('villain-time-display'),
+    villainDistDisplay: document.getElementById('villain-dist-display'),
 
     // Course Profile
     courseProfileSection: document.getElementById('course-profile-section'),

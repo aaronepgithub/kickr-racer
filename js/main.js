@@ -41,24 +41,33 @@ function gameLoop() {
         }
 
         // --- Villain Logic ---
-        const rouleur = villains.rouleur;
+        const baseVillain = villains.rouleur; // For shared properties like cooldown
 
         // 1. Villain Spawning
-        if (!state.villain.active && state.elapsedTime > rouleur.minAppearanceTime) {
+        if (!state.villain.active && state.elapsedTime > baseVillain.minAppearanceTime) {
             state.villain.timeUntilNext -= deltaTime;
             if (state.villain.timeUntilNext <= 0) {
+                const villainKeys = Object.keys(villains);
+                const randomVillainKey = villainKeys[Math.floor(Math.random() * villainKeys.length)];
+                const villain = villains[randomVillainKey];
+
                 state.villain.active = true;
-                state.villain.name = rouleur.name;
-                state.villain.power = state.power + rouleur.powerBoost;
-                state.villain.timeRemaining = rouleur.duration;
+                state.villain.name = villain.name;
+                state.villain.power = state.power + villain.powerBoost;
+                state.villain.timeRemaining = villain.duration;
+                state.villain.emoji = villain.emoji;
                 state.villain.distanceCovered = state.distanceCovered;
-                console.log("A Rouleur appears!");
+                console.log(`A ${villain.name} appears!`);
             }
         }
 
         // 2. Villain Active Logic
         if (state.villain.active) {
             state.villain.timeRemaining -= deltaTime;
+
+            // Calculate distance to player
+            const distMiles = state.distanceCovered - state.villain.distanceCovered;
+            state.villain.distanceToPlayer = distMiles * 1609.34; // convert to meters
 
             // Calculate villain's speed and distance
             const villainSpeedMps = PhysicsController.calculateSpeedMps(state.villain.power, state.gradient, state.riderWeightLbs);
@@ -71,8 +80,8 @@ function gameLoop() {
             // 3. Villain Despawning
             if (state.villain.timeRemaining <= 0) {
                 state.villain.active = false;
-                state.villain.timeUntilNext = rouleur.cooldown;
-                console.log("The Rouleur fades away.");
+                state.villain.timeUntilNext = baseVillain.cooldown; // Use base cooldown
+                console.log(`The ${state.villain.name} fades away.`);
             }
         }
 

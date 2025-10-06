@@ -61,6 +61,8 @@ export const state = {
         active: false,
         name: null,
         power: 0,
+        emoji: null,
+        distanceToPlayer: 0, // in meters
         distanceCovered: 0,
         timeRemaining: 0,
         timeUntilNext: 30, // Initial delay before first villain can appear

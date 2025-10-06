@@ -239,10 +239,16 @@ export const UIController = {
             const nameEl = state.gameViewActive ? villainDisplay.querySelector('#villain-name-display') : document.getElementById('villain-name-display');
             const powerEl = state.gameViewActive ? villainDisplay.querySelector('#villain-power-display') : document.getElementById('villain-power-display');
             const timeEl = state.gameViewActive ? villainDisplay.querySelector('#villain-time-display') : document.getElementById('villain-time-display');
+            const distEl = state.gameViewActive ? villainDisplay.querySelector('#villain-dist-display') : document.getElementById('villain-dist-display');
 
             if (nameEl) nameEl.textContent = state.villain.name;
             if (powerEl) powerEl.textContent = `${state.villain.power} W`;
             if (timeEl) timeEl.textContent = `${Math.ceil(state.villain.timeRemaining)}s`;
+            if (distEl) {
+                const dist = state.villain.distanceToPlayer;
+                const sign = dist > 0 ? '+' : '';
+                distEl.textContent = `${sign}${dist.toFixed(1)}m`;
+            }
         } else {
             villainDisplay.classList.add('hidden');
         }
@@ -442,9 +448,9 @@ export const UIController = {
 
         if (state.villain.active) {
             if (state.gameViewActive) {
-                this._updateGameViewDot('villain', state.villain.distanceCovered, '😈');
+                this._updateGameViewDot('villain', state.villain.distanceCovered, state.villain.emoji);
             } else {
-                this._updateStaticDot('villain', state.villain.distanceCovered, '😈');
+                this._updateStaticDot('villain', state.villain.distanceCovered, state.villain.emoji);
             }
         } else {
             const villainDot = document.getElementById('dot-villain');
@@ -457,7 +463,6 @@ export const UIController = {
         if (!dot) {
             dot = document.createElement('div');
             dot.id = `dot-${id}`;
-            dot.textContent = emoji;
             dot.className = 'absolute text-8xl';
             if (id === 'rider') {
                 dot.style.transform = 'translate(-50%, -90%) scaleX(-1)';
@@ -469,6 +474,7 @@ export const UIController = {
         } else if (dot.parentElement !== container) { // Ensure dot is in the correct container
             container.appendChild(dot);
         }
+        dot.textContent = emoji; // Always update the emoji
         return dot;
     },
 

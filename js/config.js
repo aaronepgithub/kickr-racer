@@ -14,7 +14,20 @@ export const villains = {
         name: 'Rouleur',
         duration: 30, // seconds
         cooldown: 30, // seconds
-        powerBoost: 20, // watts
-        minAppearanceTime: 30 // seconds into the race
+        powerBoost: 50, // watts
+        minAppearanceTime: 30, // seconds into the race
+        emoji: '😈'
+    },
+    climber: {
+        name: 'Climber',
+        duration: 20,
+        powerBoost: 75,
+        emoji: '🧗'
+    },
+    sprinter: {
+        name: 'Sprinter',
+        duration: 10,
+        powerBoost: 100,
+        emoji: '⚡'
     }
 };
