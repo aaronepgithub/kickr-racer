@@ -59,10 +59,10 @@ export const state = {
     // Villain state
     villain: {
         active: false,
+        name: null,
         power: 0,
         distanceCovered: 0,
-        appearanceTime: 0,
-        timeSinceLastVillian: 0,
-        nextAppearanceTime: 120, // Time for the next villain to appear
+        timeRemaining: 0,
+        timeUntilNext: 30, // Initial delay before first villain can appear
     },
 };

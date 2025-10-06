@@ -4,6 +4,7 @@ import { FirebaseController } from './firebase.js';
 import { BluetoothController } from './bluetooth.js';
 import { PhysicsController } from './physics.js';
 import { UIController } from './ui.js';
+import { villains } from './config.js';
 
 // --- MAIN GAME LOOP ---
 let lastUpdateTime = Date.now();
@@ -40,28 +41,24 @@ function gameLoop() {
         }
 
         // --- Villain Logic ---
-        state.villain.timeSinceLastVillian += deltaTime;
+        const rouleur = villains.rouleur;
 
         // 1. Villain Spawning
-        if (!state.villain.active && state.elapsedTime > state.villain.nextAppearanceTime && state.villain.timeSinceLastVillian > 30) {
-            state.villain.active = true;
-            state.villain.power = state.power;
-            state.villain.distanceCovered = state.distanceCovered;
-            state.villain.appearanceTime = state.elapsedTime;
-            state.villain.timeSinceLastVillian = 0;
-            // Appearance every 30 seconds, with up to 1 minute of randomness
-            state.villain.nextAppearanceTime = state.elapsedTime + 30 + Math.random() * 60;
-            console.log("Villain appeared!");
+        if (!state.villain.active && state.elapsedTime > rouleur.minAppearanceTime) {
+            state.villain.timeUntilNext -= deltaTime;
+            if (state.villain.timeUntilNext <= 0) {
+                state.villain.active = true;
+                state.villain.name = rouleur.name;
+                state.villain.power = state.power + rouleur.powerBoost;
+                state.villain.timeRemaining = rouleur.duration;
+                state.villain.distanceCovered = state.distanceCovered;
+                console.log("A Rouleur appears!");
+            }
         }
 
         // 2. Villain Active Logic
         if (state.villain.active) {
-            const timeSinceAppearance = state.elapsedTime - state.villain.appearanceTime;
-
-            // Add power after 3 seconds
-            if (timeSinceAppearance > 3) {
-                state.villain.power = state.power + 20;
-            }
+            state.villain.timeRemaining -= deltaTime;
 
             // Calculate villain's speed and distance
             const villainSpeedMps = PhysicsController.calculateSpeedMps(state.villain.power, state.gradient, state.riderWeightLbs);
@@ -72,9 +69,10 @@ function gameLoop() {
             }
 
             // 3. Villain Despawning
-            if (timeSinceAppearance > 20) {
+            if (state.villain.timeRemaining <= 0) {
                 state.villain.active = false;
-                console.log("Villain disappeared!");
+                state.villain.timeUntilNext = rouleur.cooldown;
+                console.log("The Rouleur fades away.");
             }
         }
 
@@ -85,6 +83,7 @@ function gameLoop() {
         UIController.updateElapsedTime();
         UIController.updateRacerDots();
         UIController.updateGradient();
+        UIController.updateVillainDisplay();
 
         // --- Ghost Time Diff Calculation ---
         if (state.course.recordRun && state.ghostDistanceCovered > 0) {

@@ -230,6 +230,25 @@ export const UIController = {
         }
     },
 
+    updateVillainDisplay() {
+        const villainDisplay = state.gameViewActive ? document.querySelector('#game-race-display #villain-display') : document.getElementById('villain-display');
+        if (!villainDisplay) return;
+
+        if (state.villain.active) {
+            villainDisplay.classList.remove('hidden');
+            const nameEl = state.gameViewActive ? villainDisplay.querySelector('#villain-name-display') : document.getElementById('villain-name-display');
+            const powerEl = state.gameViewActive ? villainDisplay.querySelector('#villain-power-display') : document.getElementById('villain-power-display');
+            const timeEl = state.gameViewActive ? villainDisplay.querySelector('#villain-time-display') : document.getElementById('villain-time-display');
+
+            if (nameEl) nameEl.textContent = state.villain.name;
+            if (powerEl) powerEl.textContent = `${state.villain.power} W`;
+            if (timeEl) timeEl.textContent = `${Math.ceil(state.villain.timeRemaining)}s`;
+        } else {
+            villainDisplay.classList.add('hidden');
+        }
+    },
+
+
     updatePower() {
         this.updateRaceInfo('#power-display', `${state.power} W`);
     },
@@ -446,6 +465,8 @@ export const UIController = {
                 dot.style.transform = 'translate(-50%, -90%)';
             }
              dot.style.zIndex = '10';
+            container.appendChild(dot);
+        } else if (dot.parentElement !== container) { // Ensure dot is in the correct container
             container.appendChild(dot);
         }
         return dot;

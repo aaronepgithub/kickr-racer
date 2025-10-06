@@ -8,3 +8,13 @@ export const firebaseConfig = {
 };
 
 export const appId = 'default-app-id';
+
+export const villains = {
+    rouleur: {
+        name: 'Rouleur',
+        duration: 30, // seconds
+        cooldown: 30, // seconds
+        powerBoost: 20, // watts
+        minAppearanceTime: 30 // seconds into the race
+    }
+};

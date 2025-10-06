@@ -38,6 +38,12 @@ export const DOMElements = {
     elapsedTimeDisplay: document.getElementById('elapsed-time-display'),
     ghostDiffDisplay: document.getElementById('ghost-diff-display'),
 
+    // Villain Display
+    villainDisplay: document.getElementById('villain-display'),
+    villainNameDisplay: document.getElementById('villain-name-display'),
+    villainPowerDisplay: document.getElementById('villain-power-display'),
+    villainTimeDisplay: document.getElementById('villain-time-display'),
+
     // Course Profile
     courseProfileSection: document.getElementById('course-profile-section'),
     courseProfileContainer: document.getElementById('course-profile-container'),
