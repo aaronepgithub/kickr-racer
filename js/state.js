@@ -19,6 +19,7 @@ export const state = {
     gradientSamples: [], // Samples for averaging gradient
     elapsedTime: 0,
     riderWeightLbs: 175,
+    points: 0,
 
     // Race state
     raceStarted: false,
@@ -66,5 +67,6 @@ export const state = {
         distanceCovered: 0,
         timeRemaining: 0,
         timeUntilNext: 30, // Initial delay before first villain can appear
-    },
+        drafting: false
+    }
 };

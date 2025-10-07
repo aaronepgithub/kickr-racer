@@ -6,6 +6,11 @@ import { PhysicsController } from './physics.js';
 import { UIController } from './ui.js';
 import { villains } from './config.js';
 
+// --- Helper Functions ---
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 // --- MAIN GAME LOOP ---
 let lastUpdateTime = Date.now();
 
@@ -44,7 +49,7 @@ function gameLoop() {
         const baseVillain = villains.rouleur; // For shared properties like cooldown
 
         // 1. Villain Spawning
-        if (!state.villain.active && state.elapsedTime > baseVillain.minAppearanceTime) {
+        if (!state.villain.active) {
             state.villain.timeUntilNext -= deltaTime;
             if (state.villain.timeUntilNext <= 0) {
                 const villainKeys = Object.keys(villains);
@@ -69,6 +74,14 @@ function gameLoop() {
             const distMiles = state.distanceCovered - state.villain.distanceCovered;
             state.villain.distanceToPlayer = distMiles * 1609.34; // convert to meters
 
+            // Award drafting points
+            if (state.villain.distanceToPlayer >= -3 && state.villain.distanceToPlayer < 0) {
+                state.points += 10 * deltaTime;
+                state.villain.drafting = true;
+            } else {
+                state.villain.drafting = false;
+            }
+
             // Calculate villain's speed and distance
             const villainSpeedMps = PhysicsController.calculateSpeedMps(state.villain.power, state.gradient, state.riderWeightLbs);
             const villainSpeedMph = villainSpeedMps * 2.23694;
@@ -80,7 +93,7 @@ function gameLoop() {
             // 3. Villain Despawning
             if (state.villain.timeRemaining <= 0) {
                 state.villain.active = false;
-                state.villain.timeUntilNext = baseVillain.cooldown; // Use base cooldown
+                state.villain.timeUntilNext = getRandomInt(15, 45); // Use random cooldown
                 console.log(`The ${state.villain.name} fades away.`);
             }
         }
@@ -90,6 +103,7 @@ function gameLoop() {
         UIController.updateSpeed();
         UIController.updateDistance();
         UIController.updateElapsedTime();
+        UIController.updatePoints();
         UIController.updateRacerDots();
         UIController.updateGradient();
         UIController.updateVillainDisplay();
@@ -160,6 +174,14 @@ function gameLoop() {
                 checkpointTimes: state.checkpointTimes
             };
             FirebaseController.saveRun(state.course.id, runData);
+
+            if (!state.course.highScore || state.points > state.course.highScore.points) {
+                const highScoreData = {
+                    name: DOMElements.racerNameInput.value.trim(),
+                    points: state.points
+                };
+                FirebaseController.saveHighScore(state.course.id, highScoreData);
+            }
         }
 
         // Check if the ghost has finished

@@ -3,6 +3,10 @@ import { BluetoothController } from './bluetooth.js';
 import { FirebaseController } from './firebase.js';
 import { PhysicsController } from './physics.js';
 
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 // --- CONSTANTS FOR GAME VIEW ---
 const GAME_VIEW_DISTANCE = 0.5; // miles
 const RIDER_POSITION_PERCENT = 20; // Rider is 20% from the left edge
@@ -118,7 +122,7 @@ export const UIController = {
         if (selectedEl) selectedEl.classList.add('bg-cyan-700');
 
         this.drawCourseProfile();
-        this.displayRecordTimes();
+        this.displayCourseRecords();
         this.updateStartRaceButtonState();
         document.getElementById('race-status').textContent = `${course.name} selected.`;
     },
@@ -204,7 +208,7 @@ export const UIController = {
         document.getElementById('start-race-btn').disabled = !canStart;
     },
 
-    displayRecordTimes() {
+    displayCourseRecords() {
         const record = state.course ? state.course.recordRun : null;
         const recordHolderName = document.getElementById('record-holder-name');
         const recordHolderTime = document.getElementById('record-holder-time');
@@ -214,6 +218,17 @@ export const UIController = {
         } else {
             recordHolderName.textContent = 'N/A';
             recordHolderTime.textContent = 'N/A';
+        }
+
+        const highScore = state.course ? state.course.highScore : null;
+        const highScoreHolderName = document.getElementById('high-score-holder-name');
+        const highScorePoints = document.getElementById('high-score-points');
+        if (highScore) {
+            highScoreHolderName.textContent = highScore.name;
+            highScorePoints.textContent = Math.floor(highScore.points);
+        } else {
+            highScoreHolderName.textContent = 'N/A';
+            highScorePoints.textContent = 'N/A';
         }
     },
 
@@ -236,6 +251,15 @@ export const UIController = {
 
         if (state.villain.active) {
             villainDisplay.classList.remove('hidden');
+
+            if (state.villain.drafting) {
+                villainDisplay.classList.remove('border-red-500');
+                villainDisplay.classList.add('border-green-500');
+            } else {
+                villainDisplay.classList.remove('border-green-500');
+                villainDisplay.classList.add('border-red-500');
+            }
+
             const nameEl = state.gameViewActive ? villainDisplay.querySelector('#villain-name-display') : document.getElementById('villain-name-display');
             const powerEl = state.gameViewActive ? villainDisplay.querySelector('#villain-power-display') : document.getElementById('villain-power-display');
             const timeEl = state.gameViewActive ? villainDisplay.querySelector('#villain-time-display') : document.getElementById('villain-time-display');
@@ -271,6 +295,10 @@ export const UIController = {
         this.updateRaceInfo('#elapsed-time-display', this.formatTime(state.elapsedTime));
     },
 
+    updatePoints() {
+        this.updateRaceInfo('#points-display', Math.floor(state.points));
+    },
+
     updateRaceStatus(message) {
         this.updateRaceInfo('#race-status', message);
     },
@@ -303,6 +331,7 @@ export const UIController = {
                 setTimeout(() => {
                     countdownSection.classList.add('hidden');
                     state.raceStarted = true;
+                    state.villain.timeUntilNext = getRandomInt(15, 30);
                     document.getElementById('race-status').textContent = 'Race in Progress';
                 }, 500);
             }

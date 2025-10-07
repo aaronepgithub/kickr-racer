@@ -90,10 +90,28 @@ export const FirebaseController = {
                     }
                 });
                 console.log("New record set for course:", courseId);
-                UIController.displayNewRecordMessage(runData.runnerName);
+                UIController.displayRecordTimes(runData.runnerName);
             }
         } catch (e) {
             console.error("Error saving run: ", e);
+        }
+    },
+
+    async saveHighScore(courseId, highScoreData) {
+        if (!this.db) return;
+
+        const courseRef = doc(this.db, `artifacts/${appId}/public/data/courses`, courseId);
+        try {
+            await updateDoc(courseRef, {
+                highScore: {
+                    name: highScoreData.name,
+                    points: highScoreData.points,
+                    achievedAt: serverTimestamp(),
+                }
+            });
+            console.log("New high score set for course:", courseId);
+        } catch (e) {
+            console.error("Error saving high score: ", e);
         }
     }
 };
