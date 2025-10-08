@@ -108,16 +108,9 @@ function gameLoop() {
         UIController.updateGradient();
         UIController.updateVillainDisplay();
 
-        // --- Ghost Time Diff Calculation ---
-        if (state.course.recordRun && state.ghostDistanceCovered > 0) {
-            const distanceDiff = state.distanceCovered - state.ghostDistanceCovered; // in miles
-            let timeDiff = 0;
-            if (state.speed > 1) {
-                 const playerSpeedMph = state.speed;
-                 const timeToCoverDiff_hours = distanceDiff / playerSpeedMph;
-                 timeDiff = timeToCoverDiff_hours * 3600; // convert to seconds
-            }
-            UIController.updateGhostDiff(timeDiff);
+        // --- Ghost Distance Calculation ---
+        if (state.course.recordRun) {
+            UIController.updateGhostDistance();
         }
 
         // --- Checkpoint Logic for saving the run ---
@@ -151,7 +144,8 @@ function gameLoop() {
                 // Only send if the change is significant enough to matter
                 if (Math.abs(averageGradient - state.lastSentAverageGradient) > 0.1) {
                     if (!state.simulator.active) {
-                        BluetoothController.setGradient(averageGradient);
+                        const gradientToSend = Math.max(0, averageGradient);
+                        BluetoothController.setGradient(gradientToSend);
                     }
                     state.lastSentAverageGradient = averageGradient;
                 }

@@ -232,16 +232,18 @@ export const UIController = {
         }
     },
 
-    updateGhostDiff(diffSeconds) {
-        const sign = diffSeconds >= 0 ? '+' : '-';
-        const absDiff = Math.abs(diffSeconds);
-        const minutes = Math.floor(absDiff / 60);
-        const seconds = Math.floor(absDiff % 60);
-        const timeStr = `${sign}${String(minutes)}:${String(seconds).padStart(2, '0')}`;
+    updateGhostDistance() {
+        const MILE_TO_KM = 1.60934;
+        const distDiffMiles = state.ghostDistanceCovered - state.distanceCovered;
+        const distDiffKm = Math.abs(distDiffMiles * MILE_TO_KM);
+
+        const distStr = `${distDiffKm.toFixed(2)} km`;
+
         const displayEl = state.gameViewActive ? document.querySelector('#game-race-display #ghost-diff-display') : document.getElementById('ghost-diff-display');
         if (displayEl) {
-            displayEl.textContent = timeStr;
-            displayEl.className = diffSeconds <= 0 ? 'text-2xl font-bold text-green-400' : 'text-2xl font-bold text-red-400';
+            displayEl.textContent = distStr;
+            // If distDiffMiles is negative, the rider is ahead of the ghost.
+            displayEl.className = distDiffMiles <= 0 ? 'text-2xl font-bold text-green-400' : 'text-2xl font-bold text-red-400';
         }
     },
 
@@ -493,12 +495,18 @@ export const UIController = {
             dot = document.createElement('div');
             dot.id = `dot-${id}`;
             dot.className = 'absolute text-8xl';
-            if (id === 'rider') {
-                dot.style.transform = 'translate(-50%, -90%) scaleX(-1)';
-            } else {
-                dot.style.transform = 'translate(-50%, -90%)';
+
+            let transform = 'translate(-50%, -90%)';
+            if (id !== 'ghost') {
+                transform += ' scaleX(-1)';
             }
-             dot.style.zIndex = '10';
+            dot.style.transform = transform;
+
+            if (id === 'rider') {
+                dot.style.zIndex = '20';
+            } else {
+                dot.style.zIndex = '10';
+            }
             container.appendChild(dot);
         } else if (dot.parentElement !== container) { // Ensure dot is in the correct container
             container.appendChild(dot);
