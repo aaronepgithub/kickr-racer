@@ -2,6 +2,99 @@ import { state } from './state.js';
 import { DOMElements } from './dom.js';
 import { UIController } from './ui.js';
 
+
+// parseIndoorBikeData(event) {
+//     const value = event.target.value; // DataView
+//     const flags = value.getUint16(0, true);
+//     let offset = 2;
+
+//     const data = {};
+
+//     // --- Instantaneous Speed (always present, uint16, resolution 0.01 kph) ---
+//     data.instantaneousSpeed = value.getUint16(offset, true) / 100;
+//     offset += 2;
+
+//     // --- Average Speed (Bit 1) ---
+//     if (flags & 0x0002) {
+//         data.averageSpeed = value.getUint16(offset, true) / 100;
+//         offset += 2;
+//     }
+
+//     // --- Instantaneous Cadence (Bit 2) ---
+//     if (flags & 0x0004) {
+//         data.instantaneousCadence = value.getUint16(offset, true) / 2; // spec: resolution 0.5 rpm
+//         offset += 2;
+//     }
+
+//     // --- Average Cadence (Bit 3) ---
+//     if (flags & 0x0008) {
+//         data.averageCadence = value.getUint16(offset, true) / 2;
+//         offset += 2;
+//     }
+
+//     // --- Total Distance (Bit 4, uint24, meters) ---
+//     if (flags & 0x0010) {
+//         data.totalDistance =
+//             value.getUint8(offset) |
+//             (value.getUint8(offset + 1) << 8) |
+//             (value.getUint8(offset + 2) << 16);
+//         offset += 3;
+//     }
+
+//     // --- Resistance Level (Bit 5, int16) ---
+//     if (flags & 0x0020) {
+//         data.resistanceLevel = value.getInt16(offset, true);
+//         offset += 2;
+//     }
+
+//     // --- Instantaneous Power (Bit 6, int16, watts) ---
+//     if (flags & 0x0040) {
+//         data.instantaneousPower = value.getInt16(offset, true);
+//         offset += 2;
+//     }
+
+//     // --- Average Power (Bit 7, int16, watts) ---
+//     if (flags & 0x0080) {
+//         data.averagePower = value.getInt16(offset, true);
+//         offset += 2;
+//     }
+
+//     // --- Expended Energy (Bit 8, uint16 + uint16 + uint8) ---
+//     if (flags & 0x0100) {
+//         data.totalEnergy = value.getUint16(offset, true); // kiloJoules
+//         data.energyPerHour = value.getUint16(offset + 2, true); // kiloJoules/hr
+//         data.energyPerMinute = value.getUint8(offset + 4); // kiloJoules/min
+//         offset += 5;
+//     }
+
+//     // --- Heart Rate (Bit 9, uint8) ---
+//     if (flags & 0x0200) {
+//         data.heartRate = value.getUint8(offset);
+//         offset += 1;
+//     }
+
+//     // --- Metabolic Equivalent (Bit 10, uint8) ---
+//     if (flags & 0x0400) {
+//         data.metabolicEquivalent = value.getUint8(offset);
+//         offset += 1;
+//     }
+
+//     // --- Elapsed Time (Bit 11, uint16, seconds) ---
+//     if (flags & 0x0800) {
+//         data.elapsedTime = value.getUint16(offset, true);
+//         offset += 2;
+//     }
+
+//     // --- Remaining Time (Bit 12, uint16, seconds) ---
+//     if (flags & 0x1000) {
+//         data.remainingTime = value.getUint16(offset, true);
+//         offset += 2;
+//     }
+
+//     return data;
+// }
+
+
 export const BluetoothController = {
     async connect() {
         if (!navigator.bluetooth) {
@@ -54,55 +147,128 @@ export const BluetoothController = {
         console.log('Trainer disconnected.');
     },
     handleData(event) {
-        try {
-            const value = event.target.value; // This is a DataView
-            const flags = value.getUint16(0, true);
-            let offset = 2; // Start after the 2-byte flags field
+    try {
+        const value = event.target.value; // DataView
+        //console.log('Received data:', value);
+        const flags = value.getUint16(0, true);
+        let offset = 2;
 
-            // --- More Data Flag (Bit 0) ---
-            // This simple parser assumes all data is in one packet.
+        // --- Instantaneous Speed (always present, uint16, 0.01 kph) ---
+        const speed = value.getUint16(offset, true) / 100;
+        offset += 2;
 
-            // --- Average Speed (Bit 1) ---
-            if (flags & 0x0002) {
-                offset += 2;
+        // --- Average Speed (Bit 1) ---
+        if (flags & 0x0002) {
+            offset += 2;
+        }
+
+        // --- Instantaneous Cadence (Bit 2) ---
+        if (flags & 0x0004) {
+            offset += 2;
+        }
+
+        // --- Average Cadence (Bit 3) ---
+        if (flags & 0x0008) {
+            offset += 2;
+        }
+
+        // --- Total Distance (Bit 4, uint24) ---
+        if (flags & 0x0010) {
+            offset += 3; // not 4!
+        }
+
+        // --- Resistance Level (Bit 5, int16) ---
+        if (flags & 0x0020) {
+            offset += 2;
+        }
+
+        // --- Instantaneous Power (Bit 6, int16) ---
+        if (flags & 0x0040) {
+            if (offset + 2 <= value.byteLength) {
+                const power = value.getInt16(offset, true);
+                state.power = power;
+                // UIController.updatePower(); // update in game loop
+                return;
             }
-
-            // --- Instantaneous Cadence (Bit 2) ---
-            if (flags & 0x0004) {
-                offset += 2;
-            }
-
-            // --- Average Cadence (Bit 3) ---
-            if (flags & 0x0008) {
-                offset += 2;
-            }
-
-            // --- Total Distance (Bit 4) ---
-            if (flags & 0x0010) {
-                offset += 4; // uint32
-            }
-
-            // --- Resistance Level (Bit 5) ---
-            if (flags & 0x0020) {
-                offset += 2;
-            }
-
-            // --- Instantaneous Power (Bit 6) ---
-            if (flags & 0x0040) {
-                if (offset + 1 < value.byteLength) {
-                    const power = value.getInt16(offset, true);
-                    if (power >= 0 && power < 4000) { // Plausible power range
-                        state.power = power;
-                        // UIController.updatePower(); // This is called in the main game loop
-                        return; // Successfully parsed
-                    }
-                }
-            }
-
+        }
         } catch (err) {
             console.error('Error parsing indoor bike data:', err);
         }
     },
+
+    //TRY THIS NEXT
+    // handleData(event) {
+    //     try {
+    //         const parsed = this.parseIndoorBikeData(event);
+
+    //         console.log("Parsed Bike Data:", parsed);
+
+    //         if (parsed.instantaneousPower !== undefined) {
+    //             state.power = parsed.instantaneousPower;
+    //             // UIController.updatePower(); // called elsewhere in loop
+    //         }
+
+    //     } catch (err) {
+    //         console.error("Error parsing indoor bike data:", err);
+    //     }
+    // },
+
+
+
+
+
+//THIS WAS GETTING THE WRONG VALUE
+    // handleData(event) {
+    //     try {
+    //         const value = event.target.value; // This is a DataView
+    //         console.log('Received data:', value);
+    //         const flags = value.getUint16(0, true);
+    //         let offset = 2; // Start after the 2-byte flags field
+
+    //         // --- More Data Flag (Bit 0) ---
+    //         // This simple parser assumes all data is in one packet.
+
+    //         // --- Average Speed (Bit 1) ---
+    //         if (flags & 0x0002) {
+    //             offset += 2;
+    //         }
+
+    //         // --- Instantaneous Cadence (Bit 2) ---
+    //         if (flags & 0x0004) {
+    //             offset += 2;
+    //         }
+
+    //         // --- Average Cadence (Bit 3) ---
+    //         if (flags & 0x0008) {
+    //             offset += 2;
+    //         }
+
+    //         // --- Total Distance (Bit 4) ---
+    //         if (flags & 0x0010) {
+    //             offset += 4; // uint32
+    //         }
+
+    //         // --- Resistance Level (Bit 5) ---
+    //         if (flags & 0x0020) {
+    //             offset += 2;
+    //         }
+
+    //         // --- Instantaneous Power (Bit 6) ---
+    //         if (flags & 0x0040) {
+    //             if (offset + 1 < value.byteLength) {
+    //                 const power = value.getInt16(offset, true);
+    //                 if (power >= 0 && power < 4000) { // Plausible power range
+    //                     state.power = power;
+    //                     // UIController.updatePower(); // This is called in the main game loop
+    //                     return; // Successfully parsed
+    //                 }
+    //             }
+    //         }
+
+    //     } catch (err) {
+    //         console.error('Error parsing indoor bike data:', err);
+    //     }
+    // },
 
     async reset() {
         if (!state.trainer.connected || !state.trainer.controlCharacteristic) return;
