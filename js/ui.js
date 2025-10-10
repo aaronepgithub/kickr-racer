@@ -26,6 +26,14 @@ export const UIController = {
         });
         document.getElementById('start-race-btn').addEventListener('click', () => this.startRace());
 
+        document.getElementById('erg-mode-toggle').addEventListener('change', (e) => {
+            state.ergMode.active = e.target.checked;
+            this.updateErgModeUI();
+        });
+        document.getElementById('erg-watts-input').addEventListener('input', (e) => {
+            state.ergMode.zone2Watts = parseInt(e.target.value, 10);
+        });
+
         document.getElementById('simulator-power-slider').addEventListener('input', (e) => {
             if (state.simulator.active) {
                 state.simulator.power = parseInt(e.target.value, 10);
@@ -53,37 +61,72 @@ export const UIController = {
 
     toggleSimulator() {
         state.simulator.active = !state.simulator.active;
+        state.trainer.connected = state.simulator.active;
+
+        if (state.simulator.active) {
+            state.ergMode.active = false;
+            document.getElementById('erg-mode-toggle').checked = false;
+            this.updateErgModeUI();
+        }
+
+        this.updateTrainerConnectionUI(state.trainer.connected);
+        this.updateStartRaceButtonState();
+    },
+
+    updateTrainerConnectionUI(connected) {
         const simulatorControls = document.getElementById('simulator-controls');
         const simulatorSlider = document.getElementById('simulator-power-slider-container');
         const bluetoothStatus = document.getElementById('bluetooth-status');
         const connectBtn = document.getElementById('connect-btn');
         const simulatorBtn = document.getElementById('simulator-btn');
-        
-        if (state.simulator.active) {
-            simulatorControls.classList.remove('hidden');
-            simulatorSlider.classList.remove('hidden');
-            bluetoothStatus.textContent = "Simulator Active";
-            bluetoothStatus.classList.add("text-purple-400");
-            bluetoothStatus.classList.remove("text-red-400");
-            state.trainer.connected = true;
-            connectBtn.classList.add('hidden');
-            simulatorBtn.textContent = "Disable Simulator";
+        const ergModeSection = document.getElementById('erg-mode-section');
+
+        if (connected) {
+            if (state.simulator.active) {
+                simulatorControls.classList.remove('hidden');
+                simulatorSlider.classList.remove('hidden');
+                bluetoothStatus.textContent = "Simulator Active";
+                bluetoothStatus.classList.add("text-purple-400");
+                bluetoothStatus.classList.remove("text-red-400");
+                connectBtn.classList.add('hidden');
+                simulatorBtn.textContent = "Disable Simulator";
+                ergModeSection.classList.add('hidden');
+            } else {
+                bluetoothStatus.textContent = 'Connected';
+                bluetoothStatus.classList.add('text-green-400');
+                bluetoothStatus.classList.remove('text-red-400');
+                connectBtn.textContent = 'Connected';
+                connectBtn.disabled = true;
+                simulatorBtn.classList.add('hidden');
+                ergModeSection.classList.remove('hidden');
+            }
         } else {
             simulatorControls.classList.add('hidden');
             simulatorSlider.classList.add('hidden');
             bluetoothStatus.textContent = "Disconnected";
             bluetoothStatus.classList.add("text-red-400");
             bluetoothStatus.classList.remove("text-purple-400");
-            state.trainer.connected = false;
             connectBtn.classList.remove('hidden');
+            connectBtn.disabled = false;
+            connectBtn.textContent = 'Connect';
             simulatorBtn.textContent = "Use Simulator";
+            simulatorBtn.classList.remove('hidden');
+            ergModeSection.classList.add('hidden');
         }
-        this.updateStartRaceButtonState();
     },
 
     updateSimPowerDisplay() {
         document.getElementById('sim-power-display').textContent = `${state.simulator.power} W`;
         document.getElementById('simulator-power-slider').value = state.simulator.power;
+    },
+
+    updateErgModeUI() {
+        const wattsInputContainer = document.getElementById('erg-watts-input-container');
+        if (state.ergMode.active) {
+            wattsInputContainer.classList.remove('hidden');
+        } else {
+            wattsInputContainer.classList.add('hidden');
+        }
     },
 
     async loadCourses() {
@@ -155,6 +198,9 @@ export const UIController = {
     },
 
     startRace() {
+        if (!state.simulator.active) {
+            BluetoothController.reset();
+        }
         document.getElementById('pre-race-setup').classList.add('hidden');
         if (!state.gameViewActive) {
             document.getElementById('race-display').classList.remove('hidden');

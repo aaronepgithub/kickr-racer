@@ -6,8 +6,7 @@ export const BluetoothController = {
     async connect() {
         if (!navigator.bluetooth) {
             console.error('Web Bluetooth API not available in this browser.');
-            DOMElements.bluetoothStatus.textContent = 'Bluetooth Not Supported';
-            DOMElements.bluetoothStatus.className = 'text-red-400';
+            UIController.updateTrainerConnectionUI(false);
             return;
         }
 
@@ -21,9 +20,6 @@ export const BluetoothController = {
 
             state.trainer.device = device;
             device.addEventListener('gattserverdisconnected', this.onDisconnect.bind(this));
-
-            DOMElements.connectBtn.disabled = true;
-            DOMElements.connectBtn.textContent = 'Connecting...';
 
             const server = await device.gatt.connect();
             console.log('GATT connected:', server);
@@ -42,60 +38,82 @@ export const BluetoothController = {
             state.trainer.dataCharacteristic.addEventListener('characteristicvaluechanged', this.handleData.bind(this));
 
             state.trainer.connected = true;
-            DOMElements.bluetoothStatus.textContent = 'Connected';
-            DOMElements.bluetoothStatus.className = 'text-green-400';
-            DOMElements.connectBtn.textContent = 'Connected';
-            DOMElements.connectBtn.disabled = true;
+            UIController.updateTrainerConnectionUI(true);
 
             console.log('Notifications started for Indoor Bike Data.');
 
         } catch (error) {
             console.error('Bluetooth connection failed:', error);
-            DOMElements.bluetoothStatus.textContent = 'Connection Failed';
-            DOMElements.bluetoothStatus.className = 'text-red-400';
-            DOMElements.connectBtn.disabled = false;
-            DOMElements.connectBtn.textContent = 'Connect to Trainer';
+            UIController.updateTrainerConnectionUI(false);
         }
     },
     onDisconnect() {
         state.trainer.connected = false;
         state.trainer.device = null;
-        DOMElements.bluetoothStatus.textContent = 'Disconnected';
-        DOMElements.bluetoothStatus.className = 'text-red-400';
-        DOMElements.connectBtn.disabled = false;
-        DOMElements.connectBtn.textContent = 'Connect to Trainer';
+        UIController.updateTrainerConnectionUI(false);
         console.log('Trainer disconnected.');
     },
     handleData(event) {
         try {
             const value = event.target.value; // This is a DataView
             const flags = value.getUint16(0, true);
-            // Correct flag for Instantaneous Power is bit 6 (0x0040)
-            const powerFieldPresent = (flags & 0x0040) !== 0;
+            let offset = 2; // Start after the 2-byte flags field
 
-            if (powerFieldPresent) {
-                let offset = 2; // Start after the 2-byte flags field.
-                // The following fields are all uint16 (2 bytes) unless specified otherwise
-                if (flags & 0x0002) offset += 2; // Average Speed
-                if (flags & 0x0004) offset += 2; // Instantaneous Cadence
-                if (flags & 0x0008) offset += 2; // Average Cadence
-                if (flags & 0x0010) offset += 4; // Total Distance (uint32)
-                if (flags & 0x0020) offset += 2; // Resistance Level
+            // --- More Data Flag (Bit 0) ---
+            // This simple parser assumes all data is in one packet.
 
+            // --- Average Speed (Bit 1) ---
+            if (flags & 0x0002) {
+                offset += 2;
+            }
+
+            // --- Instantaneous Cadence (Bit 2) ---
+            if (flags & 0x0004) {
+                offset += 2;
+            }
+
+            // --- Average Cadence (Bit 3) ---
+            if (flags & 0x0008) {
+                offset += 2;
+            }
+
+            // --- Total Distance (Bit 4) ---
+            if (flags & 0x0010) {
+                offset += 4; // uint32
+            }
+
+            // --- Resistance Level (Bit 5) ---
+            if (flags & 0x0020) {
+                offset += 2;
+            }
+
+            // --- Instantaneous Power (Bit 6) ---
+            if (flags & 0x0040) {
                 if (offset + 1 < value.byteLength) {
                     const power = value.getInt16(offset, true);
-                    if (power >= 0 && power < 4000) {
+                    if (power >= 0 && power < 4000) { // Plausible power range
                         state.power = power;
-                        UIController.updatePower();
+                        // UIController.updatePower(); // This is called in the main game loop
                         return; // Successfully parsed
                     }
                 }
             }
 
-            console.warn('Unable to parse power value from notification.');
-
         } catch (err) {
             console.error('Error parsing indoor bike data:', err);
+        }
+    },
+
+    async reset() {
+        if (!state.trainer.connected || !state.trainer.controlCharacteristic) return;
+
+        const command = new Uint8Array([0x01]); // Reset
+
+        try {
+            await state.trainer.controlCharacteristic.writeValue(command);
+            console.log('Trainer reset command sent.');
+        } catch (err) {
+            console.error("Error sending reset command:", err);
         }
     },
 
@@ -122,5 +140,25 @@ export const BluetoothController = {
             state.trainer.isSettingGradient = false;
         }
 
+    },
+
+    async setErgMode(watts) {
+        if (!state.trainer.connected || !state.trainer.controlCharacteristic || state.trainer.isSettingErg) return;
+
+        state.trainer.isSettingErg = true;
+
+        const command = new Uint8Array(3);
+        const dataView = new DataView(command.buffer);
+        dataView.setUint8(0, 0x05); // Set Target Power
+        dataView.setUint16(1, watts, true); // Target Power in Watts
+
+        try {
+            await state.trainer.controlCharacteristic.writeValue(command);
+            console.log(`ERG mode set to ${watts}W`);
+        } catch (err) {
+            console.error("Error setting ERG mode:", err);
+        } finally {
+            state.trainer.isSettingErg = false;
+        }
     }
 };

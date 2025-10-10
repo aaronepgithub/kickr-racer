@@ -49,6 +49,7 @@ export const state = {
         dataCharacteristic: null,
         connected: false,
         isSettingGradient: false,
+        isSettingErg: false,
     },
 
     // Simulator mode
@@ -57,11 +58,21 @@ export const state = {
         power: 100, // starting power
     },
 
+    // ERG mode
+    ergMode: {
+        active: false,
+        zone2Watts: 150,
+        targetWatts: 0,
+        lastSentErgWatts: 0,
+        lastErgUpdateTime: 0,
+    },
+
     // Villain state
     villain: {
         active: false,
         name: null,
         power: 0,
+        powerBoost: 0,
         emoji: null,
         distanceToPlayer: 0, // in meters
         distanceCovered: 0,

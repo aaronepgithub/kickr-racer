@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KICKR-RACER TT</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/favicon.png" sizes="96x96" />
 </head>
 <body class="font-sans antialiased">
 
@@ -32,6 +33,25 @@
                         </div>
                          <p class="text-center text-gray-400 my-2">OR</p>
                         <button id="simulator-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300">Use Simulator</button>
+                    </div>
+
+                    <!-- ERG Mode -->
+                    <div id="erg-mode-section" class="hidden mb-6 pb-6 border-b border-gray-700">
+                        <h2 class="text-2xl font-semibold mb-3">ERG Mode</h2>
+                        <div class="flex items-center justify-between bg-gray-700 p-4 rounded-lg">
+                            <div>
+                                <h3 class="font-semibold">Enable ERG Mode</h3>
+                                <p class="text-sm text-gray-400">Set a target power level.</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="erg-mode-toggle" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                        <div id="erg-watts-input-container" class="hidden mt-4">
+                            <label for="erg-watts-input" class="block text-sm font-medium text-gray-300 mb-1">Zone 2 Watts</label>
+                            <input type="number" id="erg-watts-input" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-yellow-400" value="150">
+                        </div>
                     </div>
 
                     <!-- Course Selection -->

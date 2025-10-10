@@ -59,6 +59,7 @@ function gameLoop() {
                 state.villain.active = true;
                 state.villain.name = villain.name;
                 state.villain.power = state.power + villain.powerBoost;
+                state.villain.powerBoost = villain.powerBoost;
                 state.villain.timeRemaining = villain.duration;
                 state.villain.emoji = villain.emoji;
                 state.villain.distanceCovered = state.distanceCovered;
@@ -124,34 +125,60 @@ function gameLoop() {
             state.nextCheckpointIndex++;
         }
 
-        // --- Gradient Updates ---
-        const currentPoint = PhysicsController.getPointAtDistance(state.distanceCovered);
-        if (currentPoint) {
-            state.targetGradient = currentPoint.gradient / 2; // Use 50% of the actual gradient
+        // --- ERG Mode Logic ---
+        if (state.ergMode.active) {
+            let targetWatts = state.ergMode.zone2Watts;
+            if (state.villain.active) {
+                targetWatts += state.villain.powerBoost / 2;
+            }
+
+            // Smoothly adjust the target watts
+            const smoothingFactor = 0.05; // Lower is smoother
+            state.ergMode.targetWatts += (targetWatts - state.ergMode.targetWatts) * smoothingFactor;
+
+            const ERG_UPDATE_INTERVAL = 1000; // ms
+            if (now - state.ergMode.lastErgUpdateTime > ERG_UPDATE_INTERVAL) {
+                const roundedTargetWatts = Math.round(state.ergMode.targetWatts);
+                if (Math.abs(roundedTargetWatts - state.ergMode.lastSentErgWatts) > 1) {
+                    if (!state.simulator.active) {
+                        BluetoothController.setErgMode(roundedTargetWatts);
+                    }
+                    state.ergMode.lastSentErgWatts = roundedTargetWatts;
+                    state.ergMode.lastErgUpdateTime = now;
+                }
+            }
         }
 
-        // Smooth the gradient for UI display
-        const smoothingFactor = 0.05; // Lower is smoother
-        state.gradient += (state.targetGradient - state.gradient) * smoothingFactor;
-        state.gradientSamples.push(state.targetGradient);
+        // --- Gradient Updates ---
+        if (!state.ergMode.active) { // Only run gradient simulation if ERG mode is off
+            const currentPoint = PhysicsController.getPointAtDistance(state.distanceCovered);
+            if (currentPoint) {
+                state.targetGradient = currentPoint.gradient / 2; // Use 50% of the actual gradient
+            }
 
-        // Throttle bluetooth commands to every 5 seconds
-        const GRADIENT_UPDATE_INTERVAL = 5000; // ms
-        if (now - state.lastGradientUpdateTime > GRADIENT_UPDATE_INTERVAL) {
-            if (state.gradientSamples.length > 0) {
-                const averageGradient = state.gradientSamples.reduce((a, b) => a + b, 0) / state.gradientSamples.length;
-                
-                // Only send if the change is significant enough to matter
-                if (Math.abs(averageGradient - state.lastSentAverageGradient) > 0.1) {
-                    if (!state.simulator.active) {
-                        const gradientToSend = Math.max(0, averageGradient);
-                        BluetoothController.setGradient(gradientToSend);
+            // Smooth the gradient for UI display
+            const smoothingFactor = 0.05; // Lower is smoother
+            state.gradient += (state.targetGradient - state.gradient) * smoothingFactor;
+            state.gradientSamples.push(state.targetGradient);
+
+            // Throttle bluetooth commands to every 5 seconds
+            const GRADIENT_UPDATE_INTERVAL = 5000; // ms
+            if (now - state.lastGradientUpdateTime > GRADIENT_UPDATE_INTERVAL) {
+                if (state.gradientSamples.length > 0) {
+                    const averageGradient = state.gradientSamples.reduce((a, b) => a + b, 0) / state.gradientSamples.length;
+                    
+                    // Only send if the change is significant enough to matter
+                    if (Math.abs(averageGradient - state.lastSentAverageGradient) > 0.1) {
+                        if (!state.simulator.active) {
+                            const gradientToSend = Math.max(0, averageGradient);
+                            BluetoothController.setGradient(gradientToSend);
+                        }
+                        state.lastSentAverageGradient = averageGradient;
                     }
-                    state.lastSentAverageGradient = averageGradient;
+                    
+                    state.gradientSamples = []; // Clear samples for the next interval
+                    state.lastGradientUpdateTime = now;
                 }
-                
-                state.gradientSamples = []; // Clear samples for the next interval
-                state.lastGradientUpdateTime = now;
             }
         }
 
