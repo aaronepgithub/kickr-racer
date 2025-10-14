@@ -9,23 +9,29 @@ export const firebaseConfig = {
 
 export const appId = 'default-app-id';
 
+
 export const villains = {
     rouleur: {
         name: 'Rouleur',
         duration: 30, // seconds
         powerBoost: 50, // watts
-        emoji: '🐆'
+        emoji: '🤡'
     },
     climber: {
         name: 'Climber',
         duration: 20, // seconds
         powerBoost: 75,
-        emoji: '🦗'
+        emoji: '⛄️'
     },
     sprinter: {
         name: 'Sprinter',
         duration: 10, // seconds
         powerBoost: 100,
-        emoji: '🦍'
+        emoji: '🚀'
     }
 };
+
+//🍙
+//⛄️
+//🥷
+//💨
