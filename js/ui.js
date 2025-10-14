@@ -109,7 +109,7 @@ export const UIController = {
             connectBtn.classList.remove('hidden');
             connectBtn.disabled = false;
             connectBtn.textContent = 'Connect';
-            simulatorBtn.textContent = "Use Simulator";
+            simulatorBtn.textContent = "Finger Power";
             simulatorBtn.classList.remove('hidden');
             ergModeSection.classList.add('hidden');
         }
