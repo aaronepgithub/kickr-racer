@@ -62,6 +62,7 @@ function gameLoop() {
                 state.villain.powerBoost = villain.powerBoost;
                 state.villain.timeRemaining = villain.duration;
                 state.villain.emoji = villain.emoji;
+                state.villain.originalEmoji = villain.emoji;
                 state.villain.distanceCovered = state.distanceCovered;
                 console.log(`A ${villain.name} appears!`);
             }
@@ -79,8 +80,10 @@ function gameLoop() {
             if (state.villain.distanceToPlayer >= -3 && state.villain.distanceToPlayer < 0) {
                 state.points += 10 * deltaTime;
                 state.villain.drafting = true;
+                state.villain.emoji = '💨';
             } else {
                 state.villain.drafting = false;
+                state.villain.emoji = state.villain.originalEmoji;
             }
 
             // Calculate villain's speed and distance

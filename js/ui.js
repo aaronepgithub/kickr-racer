@@ -540,7 +540,11 @@ export const UIController = {
         if (!dot) {
             dot = document.createElement('div');
             dot.id = `dot-${id}`;
-            dot.className = 'absolute text-8xl';
+            if (id === 'rider') {
+                dot.className = 'absolute text-6xl';
+            } else {
+                dot.className = 'absolute text-8xl';
+            }
 
             let transform = 'translate(-50%, -90%)';
             if (id !== 'ghost') {

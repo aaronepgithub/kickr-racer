@@ -74,6 +74,7 @@ export const state = {
         power: 0,
         powerBoost: 0,
         emoji: null,
+        originalEmoji: null,
         distanceToPlayer: 0, // in meters
         distanceCovered: 0,
         timeRemaining: 0,
