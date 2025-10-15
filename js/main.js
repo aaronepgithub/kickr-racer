@@ -24,7 +24,7 @@ function gameLoop() {
         UIController.drawCourseProfile();
     }
 
-    if (state.trainer.connected && state.raceStarted && state.gpxData) {
+    if ((state.trainer.connected || state.powerMeter.connected) && state.raceStarted && state.gpxData) {
         // Use simulator power if active
         if (state.simulator.active) {
             state.power = state.simulator.power;
@@ -172,7 +172,7 @@ function gameLoop() {
                     
                     // Only send if the change is significant enough to matter
                     if (Math.abs(averageGradient - state.lastSentAverageGradient) > 0.1) {
-                        if (!state.simulator.active) {
+                        if (!state.simulator.active && state.trainer.connected) {
                             const gradientToSend = Math.max(0, averageGradient);
                             BluetoothController.setGradient(gradientToSend);
                         }

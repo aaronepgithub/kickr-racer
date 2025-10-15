@@ -52,6 +52,13 @@ export const state = {
         isSettingErg: false,
     },
 
+    // Power meter connection
+    powerMeter: {
+        device: null,
+        powerCharacteristic: null,
+        connected: false,
+    },
+
     // Simulator mode
     simulator: {
         active: false,

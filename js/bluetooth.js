@@ -160,5 +160,67 @@ export const BluetoothController = {
         } finally {
             state.trainer.isSettingErg = false;
         }
+    },
+
+    async connectPowerMeter() {
+        if (!navigator.bluetooth) {
+            console.error('Web Bluetooth API not available in this browser.');
+            UIController.updatePowerMeterConnectionUI(false);
+            return;
+        }
+
+        try {
+            console.log('Requesting Bluetooth device (Cycling Power Service)...');
+
+            const device = await navigator.bluetooth.requestDevice({
+                filters: [{ services: [0x1818] }], // Cycling Power Service (0x1818)
+                optionalServices: [0x1818]
+            });
+
+            state.powerMeter.device = device;
+            device.addEventListener('gattserverdisconnected', this.onPowerMeterDisconnect.bind(this));
+
+            const server = await device.gatt.connect();
+            console.log('GATT connected for Power Meter:', server);
+
+            const service = await server.getPrimaryService(0x1818);
+            console.log('Cycling Power service obtained:', service);
+
+            state.powerMeter.powerCharacteristic = await service.getCharacteristic(0x2A63); // Cycling Power Measurement
+
+            await state.powerMeter.powerCharacteristic.startNotifications();
+            state.powerMeter.powerCharacteristic.addEventListener('characteristicvaluechanged', this.handlePowerData.bind(this));
+
+            state.powerMeter.connected = true;
+            UIController.updatePowerMeterConnectionUI(true);
+
+            console.log('Notifications started for Cycling Power Measurement.');
+
+        } catch (error) {
+            console.error('Power Meter connection failed:', error);
+            UIController.updatePowerMeterConnectionUI(false);
+        }
+    },
+
+    onPowerMeterDisconnect() {
+        state.powerMeter.connected = false;
+        state.powerMeter.device = null;
+        UIController.updatePowerMeterConnectionUI(false);
+        console.log('Power Meter disconnected.');
+    },
+
+    handlePowerData(event) {
+        try {
+            const value = event.target.value; // DataView
+            const flags = value.getUint8(0);
+            let offset = 2; // Start after flags
+
+            // Power is a sint16
+            const power = value.getInt16(offset, true);
+            state.power = power;
+
+        } catch (err) {
+            console.error('Error parsing power data:', err);
+        }
     }
 };

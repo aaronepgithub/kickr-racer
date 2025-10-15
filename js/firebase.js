@@ -90,7 +90,8 @@ export const FirebaseController = {
                     }
                 });
                 console.log("New record set for course:", courseId);
-                UIController.displayRecordTimes(runData.runnerName);
+                console.log(runData.runnerName);
+                // UIController.displayRecordTimes(runData.runnerName);
             }
         } catch (e) {
             console.error("Error saving run: ", e);

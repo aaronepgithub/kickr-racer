@@ -16,6 +16,7 @@ export const UIController = {
         state.riderWeightLbs = parseInt(document.getElementById('racer-weight-input').value, 10);
 
         document.getElementById('connect-btn').addEventListener('click', () => BluetoothController.connect());
+        document.getElementById('connect-power-meter-btn').addEventListener('click', () => BluetoothController.connectPowerMeter());
         document.getElementById('simulator-btn').addEventListener('click', () => this.toggleSimulator());
         document.getElementById('fullscreen-btn').addEventListener('click', () => this.enterGameView());
         document.getElementById('gpx-upload').addEventListener('change', (event) => this.handleFileUpload(event));
@@ -112,6 +113,50 @@ export const UIController = {
             simulatorBtn.textContent = "Finger Power";
             simulatorBtn.classList.remove('hidden');
             ergModeSection.classList.add('hidden');
+        }
+    },
+
+    updatePowerMeterConnectionUI(connected) {
+        const powerMeterStatus = document.getElementById('power-meter-status');
+        const connectPowerMeterBtn = document.getElementById('connect-power-meter-btn');
+
+        if (connected) {
+            powerMeterStatus.textContent = 'Connected';
+            powerMeterStatus.classList.add('text-green-400');
+            powerMeterStatus.classList.remove('text-red-400');
+            connectPowerMeterBtn.textContent = 'Connected';
+            connectPowerMeterBtn.disabled = true;
+        } else {
+            powerMeterStatus.textContent = 'Disconnected';
+            powerMeterStatus.classList.add('text-red-400');
+            powerMeterStatus.classList.remove('text-green-400');
+            connectPowerMeterBtn.disabled = false;
+            connectPowerMeterBtn.textContent = 'Connect';
+        }
+    },
+
+    updatePowerMeterConnectionUI(connected) {
+        const powerMeterStatus = document.getElementById('power-meter-status');
+        const connectPowerMeterBtn = document.getElementById('connect-power-meter-btn');
+        const connectBtn = document.getElementById('connect-btn');
+        const simulatorBtn = document.getElementById('simulator-btn');
+
+        if (connected) {
+            powerMeterStatus.textContent = 'Connected';
+            powerMeterStatus.classList.add('text-green-400');
+            powerMeterStatus.classList.remove('text-red-400');
+            connectPowerMeterBtn.textContent = 'Connected';
+            connectPowerMeterBtn.disabled = true;
+            connectBtn.classList.add('hidden');
+            simulatorBtn.classList.add('hidden');
+        } else {
+            powerMeterStatus.textContent = 'Disconnected';
+            powerMeterStatus.classList.add('text-red-400');
+            powerMeterStatus.classList.remove('text-green-400');
+            connectPowerMeterBtn.disabled = false;
+            connectPowerMeterBtn.textContent = 'Connect';
+            connectBtn.classList.remove('hidden');
+            simulatorBtn.classList.remove('hidden');
         }
     },
 
@@ -250,7 +295,7 @@ export const UIController = {
         const canStart = document.getElementById('racer-name-input').value.trim() !== '' &&
                          document.getElementById('racer-weight-input').value > 0 &&
                          state.course !== null &&
-                         state.trainer.connected;
+                         (state.trainer.connected || state.powerMeter.connected);
         document.getElementById('start-race-btn').disabled = !canStart;
     },
 
