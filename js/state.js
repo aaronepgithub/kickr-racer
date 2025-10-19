@@ -24,6 +24,7 @@ export const state = {
     // Race state
     raceStarted: false,
     raceFinished: false, // True when both rider and ghost are done
+    music: null,
     riderFinished: false,
     ghostFinished: false,
     gameViewActive: false,

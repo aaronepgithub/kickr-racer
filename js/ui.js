@@ -8,12 +8,16 @@ function getRandomInt(min, max) {
 }
 
 // --- CONSTANTS FOR GAME VIEW ---
-const GAME_VIEW_DISTANCE = 0.5; // miles
+const GAME_VIEW_DISTANCE = 0.25; // miles
 const RIDER_POSITION_PERCENT = 20; // Rider is 20% from the left edge
 
 export const UIController = {
     init() {
         state.riderWeightLbs = parseInt(document.getElementById('racer-weight-input').value, 10);
+
+        // Set up background music
+        state.music = new Audio('/assets/music/tropical_fantasy.mp3');
+        state.music.loop = true;
 
         document.getElementById('connect-btn').addEventListener('click', () => BluetoothController.connect());
         document.getElementById('connect-power-meter-btn').addEventListener('click', () => BluetoothController.connectPowerMeter());
@@ -424,6 +428,7 @@ export const UIController = {
                 setTimeout(() => {
                     countdownSection.classList.add('hidden');
                     state.raceStarted = true;
+                    state.music.play();
                     state.villain.timeUntilNext = getRandomInt(15, 30);
                     document.getElementById('race-status').textContent = 'Race in Progress';
                 }, 500);
@@ -515,8 +520,7 @@ export const UIController = {
         state.gameView.minEle = Math.min(...elevations);
         state.gameView.eleRange = (Math.max(...elevations) - state.gameView.minEle || 1) * 2;
 
-        ctx.fillStyle = '#111827'; // bg-gray-900
-        ctx.fillRect(0, 0, width, height);
+        ctx.clearRect(0, 0, width, height);
 
         const getGameCoords = (p) => {
             const x = ((p.startDistance - windowStart) / GAME_VIEW_DISTANCE) * width;

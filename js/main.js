@@ -218,6 +218,7 @@ function gameLoop() {
         if (state.riderFinished && (state.ghostFinished || !state.course.recordRun) && !state.raceFinished) {
             state.raceFinished = true; // Prevent this block from running multiple times
             state.raceStarted = false;
+            state.music.pause();
             UIController.updateRaceStatus("Race Complete!");
             console.log("Race complete! Notification should be visible.");
         }
