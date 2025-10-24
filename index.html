@@ -129,46 +129,51 @@
         </div>
 
         <!-- Main Race Display - This will be cloned or shown when the race starts -->
+        <!-- Race Display -->
         <div id="race-display"
              class="hidden mt-8 grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
-            <div class="bg-gray-700 p-4 rounded-lg">
-                <h4 class="font-semibold text-sm text-gray-400">Power</h4>
-                <p id="power-display" class="text-3xl font-bold">0 W</p>
-            </div>
-            <div class="bg-gray-700 p-4 rounded-lg">
-                <h4 class="font-semibold text-sm text-gray-400">Speed</h4>
-                <p id="speed-display" class="text-3xl font-bold">0.0 mph</p>
-            </div>
-            <div class="bg-gray-700 p-4 rounded-lg">
-                <h4 class="font-semibold text-sm text-gray-400">Distance</h4>
-                <p id="distance-display" class="text-3xl font-bold">0.00 mi</p>
-            </div>
-            <div class="bg-gray-700 p-4 rounded-lg">
-                <h4 class="font-semibold text-sm text-gray-400">Gradient</h4>
-                <p id="gradient-display" class="text-3xl font-bold">0.0 %</p>
-            </div>
-            <div class="bg-gray-700 p-4 rounded-lg">
-                <h4 class="font-semibold text-sm text-gray-400">Time</h4>
-                <p id="elapsed-time-display" class="text-3xl font-mono">00:00:00</p>
-            </div>
-            <div class="bg-gray-700 p-4 rounded-lg">
-                <h4 class="font-semibold text-sm text-gray-400">Points</h4>
-                <p id="points-display" class="text-3xl font-bold">0</p>
-            </div>
-             <div class="bg-gray-700 p-4 rounded-lg md:col-span-2">
-                <h4 class="font-semibold text-sm text-gray-400">Status</h4>
-                <p id="race-status" class="text-xl font-bold">Waiting to start...</p>
-            </div>
-            <div class="bg-gray-700 p-4 rounded-lg md:col-span-2">
-                <h4 class="font-semibold text-sm text-gray-400">Distance to Ghost</h4>
-                 <p id="ghost-diff-display" class="text-2xl font-bold text-gray-400">0.0 km</p>
-            </div>
-            <div id="villain-display" class="hidden bg-gray-800 p-4 rounded-lg md:col-span-1 border-2 border-red-500">
-                <h4 id="villain-name-display" class="font-semibold text-lg text-red-400">Rouleur</h4>
-                <p id="villain-power-display" class="text-2xl font-bold">0 W</p>
-                <p id="villain-time-display" class="text-xl font-mono">0s</p>
-                <p id="villain-dist-display" class="text-lg font-mono">0m</p>
-            </div>
+        <div class="bg-gray-700 p-4 rounded-lg">
+        <h4 class="font-semibold text-sm text-gray-400">Power</h4>
+        <p id="power-display" class="text-3xl font-bold">0 W</p>
+        </div>
+        <div class="bg-gray-700 p-4 rounded-lg">
+        <h4 class="font-semibold text-sm text-gray-400">Speed</h4>
+        <p id="speed-display" class="text-3xl font-bold">0.0 mph</p>
+        </div>
+        <div class="bg-gray-700 p-4 rounded-lg">
+        <h4 class="font-semibold text-sm text-gray-400">Distance</h4>
+        <p id="distance-display" class="text-3xl font-bold">0.00 mi</p>
+        </div>
+        <div class="bg-gray-700 p-4 rounded-lg">
+        <h4 class="font-semibold text-sm text-gray-400">Gradient</h4>
+        <p id="gradient-display" class="text-3xl font-bold">0.0 %</p>
+        </div>
+        <div class="bg-gray-700 p-4 rounded-lg">
+        <h4 class="font-semibold text-sm text-gray-400">Time</h4>
+        <p id="elapsed-time-display" class="text-3xl font-mono">00:00:00</p>
+        </div>
+        <div class="bg-gray-700 p-4 rounded-lg">
+        <h4 class="font-semibold text-sm text-gray-400">Points</h4>
+        <p id="points-display" class="text-3xl font-bold">0</p>
+        </div>
+        <div class="bg-gray-700 p-4 rounded-lg">
+        <h4 class="font-semibold text-sm text-gray-400">Cadence</h4>
+        <p id="cadence-display" class="text-3xl font-bold">N/A</p>
+        </div>
+         <div class="bg-gray-700 p-4 rounded-lg md:col-span-2">
+        <h4 class="font-semibold text-sm text-gray-400">Status</h4>
+        <p id="race-status" class="text-xl font-bold">Waiting to start...</p>
+        </div>
+        <div class="bg-gray-700 p-4 rounded-lg md:col-span-2">
+        <h4 class="font-semibold text-sm text-gray-400">Distance to Ghost</h4>
+         <p id="ghost-diff-display" class="text-2xl font-bold text-gray-400">0.0 km</p>
+        </div>
+        <div id="villain-display" class="hidden bg-gray-800 p-4 rounded-lg md:col-span-1 border-2 border-red-500">
+        <h4 id="villain-name-display" class="font-semibold text-lg text-red-400">Rouleur</h4>
+        <p id="villain-power-display" class="text-2xl font-bold">0 W</p>
+        <p id="villain-time-display" class="text-xl font-mono">0s</p>
+        <p id="villain-dist-display" class="text-lg font-mono">0m</p>
+        </div>
         </div>
 
     </div>
@@ -176,8 +181,19 @@
     <!-- Fullscreen Game View Container -->
     <div id="game-view" class="hidden fixed inset-0 z-40"></div>
 
-    <div id="simulator-power-slider-container" class="hidden fixed bottom-10 left-1/2 transform -translate-x-1/2 w-1/2 z-50">
-        <input type="range" id="simulator-power-slider" min="0" max="500" value="100" class="w-full">
+    <div id="simulator-power-slider-container" class="hidden fixed bottom-10 left-1/2 transform -translate-x-1/2 w-3/4 z-50 bg-gray-800 p-4 rounded-lg">
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label for="simulator-cadence-slider" class="block text-sm font-medium text-gray-300 mb-1">Cadence (RPM)</label>
+                <input type="range" id="simulator-cadence-slider" min="85" max="95" value="90" class="w-full">
+                <p class="text-center text-white mt-1" id="sim-cadence-display">90 RPM</p>
+            </div>
+            <div>
+                <label for="simulator-gear-slider" class="block text-sm font-medium text-gray-300 mb-1">Gear (1-12)</label>
+                <input type="range" id="simulator-gear-slider" min="1" max="12" value="6" class="w-full">
+                <p class="text-center text-white mt-1" id="sim-gear-display">Gear 6</p>
+            </div>
+        </div>
     </div>
 
     <!-- Simulator Controls -->

@@ -39,18 +39,47 @@ export const UIController = {
             state.ergMode.zone2Watts = parseInt(e.target.value, 10);
         });
 
-        document.getElementById('simulator-power-slider').addEventListener('input', (e) => {
+        // Power slider has been replaced with cadence and gear sliders
+
+        document.getElementById('simulator-cadence-slider').addEventListener('input', (e) => {
             if (state.simulator.active) {
-                state.simulator.power = parseInt(e.target.value, 10);
-                this.updateSimPowerDisplay();
+                state.simulator.cadence = parseInt(e.target.value, 10);
+                document.getElementById('sim-cadence-display').textContent = `${state.simulator.cadence} RPM`;
+                this.calculateSimulatorPower();
+            }
+        });
+
+        document.getElementById('simulator-gear-slider').addEventListener('input', (e) => {
+            if (state.simulator.active) {
+                state.simulator.gear = parseInt(e.target.value, 10);
+                document.getElementById('sim-gear-display').textContent = `Gear ${state.simulator.gear}`;
+                this.calculateSimulatorPower();
             }
         });
 
         document.addEventListener('keydown', (e) => {
             if (state.simulator.active) {
-                if (e.key === 'ArrowUp') state.simulator.power += 10;
-                else if (e.key === 'ArrowDown') state.simulator.power = Math.max(0, state.simulator.power - 10);
-                this.updateSimPowerDisplay();
+                if (e.key === 'ArrowUp') {
+                    state.simulator.cadence = Math.min(95, state.simulator.cadence + 1);
+                    document.getElementById('simulator-cadence-slider').value = state.simulator.cadence;
+                    document.getElementById('sim-cadence-display').textContent = `${state.simulator.cadence} RPM`;
+                }
+                else if (e.key === 'ArrowDown') {
+                    state.simulator.cadence = Math.max(85, state.simulator.cadence - 1);
+                    document.getElementById('simulator-cadence-slider').value = state.simulator.cadence;
+                    document.getElementById('sim-cadence-display').textContent = `${state.simulator.cadence} RPM`;
+                }
+                else if (e.key === 'ArrowRight') {
+                    state.simulator.gear = Math.min(12, state.simulator.gear + 1);
+                    document.getElementById('simulator-gear-slider').value = state.simulator.gear;
+                    document.getElementById('sim-gear-display').textContent = `Gear ${state.simulator.gear}`;
+                }
+                else if (e.key === 'ArrowLeft') {
+                    state.simulator.gear = Math.max(1, state.simulator.gear - 1);
+                    document.getElementById('simulator-gear-slider').value = state.simulator.gear;
+                    document.getElementById('sim-gear-display').textContent = `Gear ${state.simulator.gear}`;
+                }
+                this.calculateSimulatorPower();
             }
         });
 
@@ -89,13 +118,13 @@ export const UIController = {
         if (connected) {
             if (state.simulator.active) {
                 simulatorControls.classList.remove('hidden');
-                simulatorSlider.classList.remove('hidden');
                 bluetoothStatus.textContent = "Simulator Active";
                 bluetoothStatus.classList.add("text-purple-400");
                 bluetoothStatus.classList.remove("text-red-400");
                 connectBtn.classList.add('hidden');
                 simulatorBtn.textContent = "Disable Simulator";
                 ergModeSection.classList.add('hidden');
+                this.updateSimulatorUI();
             } else {
                 bluetoothStatus.textContent = 'Connected';
                 bluetoothStatus.classList.add('text-green-400');
@@ -164,9 +193,25 @@ export const UIController = {
         }
     },
 
-    updateSimPowerDisplay() {
+    calculateSimulatorPower() {
+        // Gear 1 has highest resistance, Gear 12 has lowest
+        // To achieve 30mph on flat road (0% gradient) at 100rpm in gear 1:
+        // Base power calculation
+        const maxPower = 600; // Power needed for 30mph in hardest gear at 100rpm
+        const gearFactor = (13 - state.simulator.gear) / 12; // 1.0 (gear1) down to ~0.08 (gear12)
+        const cadenceFactor = state.simulator.cadence / 100; // normalized to 100 RPM
+
+        state.simulator.power = Math.round(maxPower * gearFactor * cadenceFactor);
+
         document.getElementById('sim-power-display').textContent = `${state.simulator.power} W`;
-        document.getElementById('simulator-power-slider').value = state.simulator.power;
+    },
+
+    updateSimulatorUI() {
+        document.getElementById('sim-power-display').textContent = `${state.simulator.power} W`;
+        document.getElementById('simulator-cadence-slider').value = state.simulator.cadence;
+        document.getElementById('sim-cadence-display').textContent = `${state.simulator.cadence} RPM`;
+        document.getElementById('simulator-gear-slider').value = state.simulator.gear;
+        document.getElementById('sim-gear-display').textContent = `Gear ${state.simulator.gear}`;
     },
 
     updateErgModeUI() {
@@ -376,6 +421,18 @@ export const UIController = {
     },
 
 
+    showShiftWindow(gear) {
+        this.updateRaceStatus(`Shift to Gear ${gear}!`);
+    },
+
+    showShiftSuccess() {
+        this.updateRaceStatus('Perfect shift! +20');
+    },
+
+    showShiftMiss() {
+        this.updateRaceStatus('Missed shift: -10% power for 5s');
+    },
+
     updatePower() {
         this.updateRaceInfo('#power-display', `${state.power} W`);
     },
@@ -394,6 +451,11 @@ export const UIController = {
 
     updatePoints() {
         this.updateRaceInfo('#points-display', Math.floor(state.points));
+    },
+
+    updateCadence() {
+        const value = state.simulator.active ? `${state.simulator.cadence} rpm` : `N/A`;
+        this.updateRaceInfo('#cadence-display', value);
     },
 
     updateRaceStatus(message) {
@@ -431,6 +493,9 @@ export const UIController = {
                     state.music.play();
                     state.villain.timeUntilNext = getRandomInt(15, 30);
                     document.getElementById('race-status').textContent = 'Race in Progress';
+                    if (state.simulator.active) {
+                        document.getElementById('simulator-power-slider-container').classList.remove('hidden');
+                    }
                 }, 500);
             }
         };

@@ -11,6 +11,20 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function recommendGear(gradient, cadence) {
+    let gear;
+    if (gradient < -3) gear = 3;
+    else if (gradient < -1) gear = 5;
+    else if (gradient < 1) gear = 6;
+    else if (gradient < 3) gear = 8;
+    else if (gradient < 6) gear = 10;
+    else gear = 12;
+
+    if (cadence > 92) gear = Math.max(1, gear - 1);
+    if (cadence < 88) gear = Math.min(12, gear + 1);
+    return gear;
+}
+
 // --- MAIN GAME LOOP ---
 let lastUpdateTime = Date.now();
 
@@ -27,7 +41,7 @@ function gameLoop() {
     if ((state.trainer.connected || state.powerMeter.connected) && state.raceStarted && state.gpxData) {
         // Use simulator power if active
         if (state.simulator.active) {
-            state.power = state.simulator.power;
+            state.power = Math.round(state.simulator.power * state.shiftAssist.penaltyMultiplier);
         }
 
         // --- Physics and State Updates ---
@@ -111,6 +125,7 @@ function gameLoop() {
         UIController.updateRacerDots();
         UIController.updateGradient();
         UIController.updateVillainDisplay();
+        UIController.updateCadence(); // new: show current cadence in HUD
 
         // --- Ghost Distance Calculation ---
         if (state.course.recordRun) {
@@ -164,6 +179,46 @@ function gameLoop() {
             state.gradient += (state.targetGradient - state.gradient) * smoothingFactor;
             state.gradientSamples.push(state.targetGradient);
 
+            // Trigger Perfect Shift window on meaningful gradient change
+            const gradientDelta = state.targetGradient - state.shiftAssist.lastTargetGradient;
+            if (Math.abs(gradientDelta) >= 0.5 && !state.shiftAssist.windowActive) {
+                // Automatically adjust cadence due to road gradient change
+                if (state.simulator.active) {
+                    const cadenceDelta = -gradientDelta * 1.5; // climb => cadence drops, descent => cadence rises
+                    state.simulator.cadence = Math.max(85, Math.min(100, Math.round(state.simulator.cadence + cadenceDelta)));
+                    UIController.updateSimulatorUI(); // keep sliders/labels in sync
+                    UIController.updateCadence();
+                }
+
+                state.shiftAssist.recommendedGear = recommendGear(state.targetGradient, state.simulator.cadence);
+                state.shiftAssist.windowActive = true;
+                state.shiftAssist.windowEndTime = Date.now() + 2000; // 2s window
+                state.shiftAssist.success = false;
+                UIController.showShiftWindow(state.shiftAssist.recommendedGear);
+            }
+            state.shiftAssist.lastTargetGradient = state.targetGradient;
+
+            // Check shift success/miss during active window
+            if (state.shiftAssist.windowActive) {
+                if (state.simulator.active &&
+                    state.simulator.gear === state.shiftAssist.recommendedGear &&
+                    !state.shiftAssist.success) {
+                    state.points += 20; // reward for perfect shift
+                    state.shiftAssist.success = true;
+                    state.shiftAssist.windowActive = false;
+                    UIController.showShiftSuccess();
+                } else if (Date.now() >= state.shiftAssist.windowEndTime) {
+                    state.shiftAssist.windowActive = false;
+                    if (!state.shiftAssist.success) {
+                        // Apply temporary penalty
+                        state.shiftAssist.penaltyActive = true;
+                        state.shiftAssist.penaltyMultiplier = 0.9; // -10% effective power
+                        state.shiftAssist.penaltyEndTime = Date.now() + 5000; // 5s
+                        UIController.showShiftMiss();
+                    }
+                }
+            }
+
             // Throttle bluetooth commands to every 5 seconds
             const GRADIENT_UPDATE_INTERVAL = 5000; // ms
             if (now - state.lastGradientUpdateTime > GRADIENT_UPDATE_INTERVAL) {
@@ -182,6 +237,32 @@ function gameLoop() {
                     state.gradientSamples = []; // Clear samples for the next interval
                     state.lastGradientUpdateTime = now;
                 }
+            }
+        }
+
+        // Decay/clear penalty if time elapsed
+        if (state.shiftAssist.penaltyActive && Date.now() >= state.shiftAssist.penaltyEndTime) {
+            state.shiftAssist.penaltyActive = false;
+            state.shiftAssist.penaltyMultiplier = 1.0;
+        }
+
+        // Throttle bluetooth commands to every 5 seconds
+        const GRADIENT_UPDATE_INTERVAL = 5000; // ms
+        if (now - state.lastGradientUpdateTime > GRADIENT_UPDATE_INTERVAL) {
+            if (state.gradientSamples.length > 0) {
+                const averageGradient = state.gradientSamples.reduce((a, b) => a + b, 0) / state.gradientSamples.length;
+                
+                // Only send if the change is significant enough to matter
+                if (Math.abs(averageGradient - state.lastSentAverageGradient) > 0.1) {
+                    if (!state.simulator.active && state.trainer.connected) {
+                        const gradientToSend = Math.max(0, averageGradient);
+                        BluetoothController.setGradient(gradientToSend);
+                    }
+                    state.lastSentAverageGradient = averageGradient;
+                }
+                
+                state.gradientSamples = []; // Clear samples for the next interval
+                state.lastGradientUpdateTime = now;
             }
         }
 
@@ -226,7 +307,8 @@ function gameLoop() {
     }
 
     requestAnimationFrame(gameLoop);
-}
+} // end of gameLoop
+
 
 // --- INITIALIZATION ---
 function init() {

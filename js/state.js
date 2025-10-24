@@ -63,7 +63,9 @@ export const state = {
     // Simulator mode
     simulator: {
         active: false,
-        power: 100, // starting power
+        power: 100, // calculated power based on cadence and gear
+        cadence: 90, // RPM - starting cadence
+        gear: 6,    // 1-12, 1 is highest resistance
     },
 
     // ERG mode
@@ -73,6 +75,18 @@ export const state = {
         targetWatts: 0,
         lastSentErgWatts: 0,
         lastErgUpdateTime: 0,
+    },
+
+    // Perfect Shifts state
+    shiftAssist: {
+        windowActive: false,
+        windowEndTime: 0,
+        recommendedGear: null,
+        success: false,
+        lastTargetGradient: 0,
+        penaltyActive: false,
+        penaltyMultiplier: 1.0,
+        penaltyEndTime: 0
     },
 
     // Villain state
