@@ -69,6 +69,15 @@ export const state = {
         cadence: 90, // RPM - starting cadence
         gear: 6,    // 1-12, 1 is highest resistance
         targetSpeed: 20, // mph
+        // Simulator tuning parameters (only affect simulator mode)
+        // Lower viewDistanceMultiplier -> more zoomed-in (moves faster visually)
+        viewDistanceMultiplier: 0.6,
+        // Amplify elevation/gradient for a more dramatic visual/physics effect
+        elevationAmplifier: 1.8,
+        // Scale points earned while in simulator (lower means harder to earn points)
+        pointsScale: 0.6,
+        // Make villains more aggressive in simulator mode (>1 increases power)
+        villainAggressiveness: 1.25,
     },
 
     // ERG mode

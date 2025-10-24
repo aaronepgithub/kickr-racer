@@ -41,8 +41,9 @@ function gameLoop() {
                 points = maxPoints * (1 - (powerDifference / maxPowerDifference));
             }
 
-            state.points += points * deltaTime * state.pointsMultiplier;
-
+            // Make points harder to earn in simulator mode by scaling
+            const simScale = state.simulator.active ? state.simulator.pointsScale : 1;
+            state.points += points * deltaTime * state.pointsMultiplier * simScale;
         }
 
         // --- Physics and State Updates ---
@@ -73,8 +74,9 @@ function gameLoop() {
 
                 state.villain.active = true;
                 state.villain.name = villain.name;
-                state.villain.power = state.power + villain.powerBoost;
-                state.villain.powerBoost = villain.powerBoost;
+                // Increase villain power slightly in simulator mode for a tougher challenge
+                const aggressiveness = state.simulator.active ? state.simulator.villainAggressiveness : 1;
+                state.villain.power = state.power + villain.powerBoost * aggressiveness;
                 state.villain.timeRemaining = villain.duration;
                 state.villain.emoji = villain.emoji;
                 state.villain.originalEmoji = villain.emoji;
@@ -91,9 +93,11 @@ function gameLoop() {
             const distMiles = state.distanceCovered - state.villain.distanceCovered;
             state.villain.distanceToPlayer = distMiles * 1609.34; // convert to meters
 
-            // Award drafting points
-            if (state.villain.distanceToPlayer >= -3 && state.villain.distanceToPlayer < 0) {
-                state.points += 10 * deltaTime;
+            // Award drafting points (tighter window and scaled rewards in simulator mode)
+            const draftWindow = state.simulator.active ? -1 : -3; // meters behind
+            const draftBasePoints = 10 * (state.simulator.active ? state.simulator.pointsScale : 1);
+            if (state.villain.distanceToPlayer >= draftWindow && state.villain.distanceToPlayer < 0) {
+                state.points += draftBasePoints * deltaTime;
                 state.villain.drafting = true;
                 state.villain.emoji = '💨';
             } else {
@@ -112,7 +116,8 @@ function gameLoop() {
             // 3. Villain Despawning
             if (state.villain.timeRemaining <= 0) {
                 state.villain.active = false;
-                state.villain.timeUntilNext = getRandomInt(15, 45); // Use random cooldown
+                // Simulator mode spawns villains more often
+                state.villain.timeUntilNext = state.simulator.active ? getRandomInt(10, 30) : getRandomInt(15, 45);
                 console.log(`The ${state.villain.name} fades away.`);
             }
         }
@@ -172,7 +177,9 @@ function gameLoop() {
         if (!state.ergMode.active) { // Only run gradient simulation if ERG mode is off
             const currentPoint = PhysicsController.getPointAtDistance(state.distanceCovered);
             if (currentPoint) {
-                state.targetGradient = currentPoint.gradient / 2; // Use 50% of the actual gradient
+                // Use a smaller, smoothed gradient for trainer mode but amplify for simulator for drama
+                const gradientFactor = state.simulator.active ? state.simulator.elevationAmplifier : 0.5;
+                state.targetGradient = currentPoint.gradient * gradientFactor;
             }
 
             // Throttle bluetooth commands to every 10 seconds
