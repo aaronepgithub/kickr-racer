@@ -188,5 +188,22 @@ export const PhysicsController = {
         }
 
         return high;
+    },
+
+    calculatePowerForTargetSpeed(targetSpeedMps, gradient, weightLbs) {
+        const riderWeightKg = weightLbs * 0.453592;
+        const totalMass = riderWeightKg + 9; // Add bike weight
+        const g = 9.81;
+        const Crr = 0.005; // Rolling resistance
+        const rho = 1.225; // Air density
+        const CdA = 0.32; // Drag coefficient * frontal area
+
+        const grade = gradient / 100;
+
+        const forceGravity = totalMass * g * Math.sin(Math.atan(grade));
+        const forceRolling = totalMass * g * Math.cos(Math.atan(grade)) * Crr;
+
+        const f_drag = 0.5 * rho * CdA * targetSpeedMps * targetSpeedMps;
+        return (forceRolling + forceGravity + f_drag) * targetSpeedMps;
     }
 };

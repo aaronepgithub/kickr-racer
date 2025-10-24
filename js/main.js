@@ -27,7 +27,22 @@ function gameLoop() {
     if ((state.trainer.connected || state.powerMeter.connected) && state.raceStarted && state.gpxData) {
         // Use simulator power if active
         if (state.simulator.active) {
-            state.power = Math.round(state.simulator.power * state.shiftAssist.penaltyMultiplier);
+            state.power = state.simulator.power;
+
+            const targetSpeedMps = state.simulator.targetSpeed / 2.23694;
+            const targetPower = PhysicsController.calculatePowerForTargetSpeed(targetSpeedMps, state.gradient, state.riderWeightLbs);
+            const actualPower = state.power;
+            const powerDifference = Math.abs(targetPower - actualPower);
+
+            const maxPoints = 10;
+            const maxPowerDifference = 100; // Points scale down to 0 over this difference
+            let points = 0;
+            if (powerDifference < maxPowerDifference) {
+                points = maxPoints * (1 - (powerDifference / maxPowerDifference));
+            }
+
+            state.points += points * deltaTime * state.pointsMultiplier;
+
         }
 
         // --- Physics and State Updates ---
@@ -175,12 +190,6 @@ function gameLoop() {
                 
                 state.lastGradientUpdateTime = now;
             }
-        }
-
-        // Decay/clear penalty if time elapsed
-        if (state.shiftAssist.penaltyActive && Date.now() >= state.shiftAssist.penaltyEndTime) {
-            state.shiftAssist.penaltyActive = false;
-            state.shiftAssist.penaltyMultiplier = 1.0;
         }
 
         // --- Finish Race Logic ---

@@ -439,6 +439,13 @@ export const UIController = {
     updateSpeed() {
         this.updateRaceInfo('#speed-display', `${state.speed.toFixed(1)} mph`);
     },
+    updateTargetSpeed() {
+        if (state.simulator.active) {
+            this.updateRaceInfo('#target-speed-display', `${state.simulator.targetSpeed.toFixed(1)} mph`);
+        } else {
+            this.updateRaceInfo('#target-speed-display', 'N/A');
+        }
+    },
     updateDistance() {
         this.updateRaceInfo('#distance-display', `${state.distanceCovered.toFixed(2)} mi`);
     },

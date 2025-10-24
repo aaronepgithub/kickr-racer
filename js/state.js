@@ -20,6 +20,8 @@ export const state = {
     elapsedTime: 0,
     riderWeightLbs: 175,
     points: 0,
+    pointsMultiplier: 1,
+    lastPointsUpdateTime: 0,
 
     // Race state
     raceStarted: false,
@@ -66,6 +68,7 @@ export const state = {
         power: 100, // calculated power based on cadence and gear
         cadence: 90, // RPM - starting cadence
         gear: 6,    // 1-12, 1 is highest resistance
+        targetSpeed: 20, // mph
     },
 
     // ERG mode
@@ -75,18 +78,6 @@ export const state = {
         targetWatts: 0,
         lastSentErgWatts: 0,
         lastErgUpdateTime: 0,
-    },
-
-    // Perfect Shifts state
-    shiftAssist: {
-        windowActive: false,
-        windowEndTime: 0,
-        recommendedGear: null,
-        success: false,
-        lastTargetGradient: 0,
-        penaltyActive: false,
-        penaltyMultiplier: 1.0,
-        penaltyEndTime: 0
     },
 
     // Villain state
