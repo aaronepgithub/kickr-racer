@@ -441,12 +441,12 @@ export const UIController = {
             const distEl = state.gameViewActive ? villainDisplay.querySelector('#villain-dist-display') : document.getElementById('villain-dist-display');
 
             if (nameEl) nameEl.textContent = state.villain.name;
-            if (powerEl) powerEl.textContent = `${state.villain.power} Watts  |   `;
-            if (timeEl) timeEl.textContent = `${Math.ceil(state.villain.timeRemaining)}s remain  |  `;
+            if (powerEl) powerEl.textContent = `${state.villain.power} Watts`;
+            if (timeEl) timeEl.textContent = `${Math.ceil(state.villain.timeRemaining)} seconds`;
             if (distEl) {
                 const dist = state.villain.distanceToPlayer;
                 const sign = dist > 0 ? '+' : '';
-                distEl.textContent = `${sign}${dist.toFixed(1)}m from you`;
+                distEl.textContent = `  ${sign}${dist.toFixed(1)} meters`;
             }
         } else {
             villainDisplay.classList.add('hidden');
