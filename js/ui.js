@@ -32,6 +32,17 @@ export const UIController = {
         });
         document.getElementById('start-race-btn').addEventListener('click', () => this.startRace());
 
+        document.getElementById('ghost-pacer-mode').addEventListener('change', (e) => {
+            state.ghostPacer.mode = e.target.value;
+            this.updateGhostPacerUI();
+        });
+        document.getElementById('ghost-target-speed').addEventListener('input', (e) => {
+            state.ghostPacer.targetSpeed = parseFloat(e.target.value);
+        });
+        document.getElementById('ghost-target-power').addEventListener('input', (e) => {
+            state.ghostPacer.targetPower = parseInt(e.target.value, 10);
+        });
+
         document.getElementById('erg-mode-toggle').addEventListener('change', (e) => {
             state.ergMode.active = e.target.checked;
             this.updateErgModeUI();
@@ -406,17 +417,39 @@ export const UIController = {
     },
 
     updateGhostDistance() {
-        const MILE_TO_KM = 1.60934;
         const distDiffMiles = state.ghostDistanceCovered - state.distanceCovered;
-        const distDiffKm = Math.abs(distDiffMiles * MILE_TO_KM);
+        const distDiffFeet = distDiffMiles * 5280;
 
-        const distStr = `${distDiffKm.toFixed(2)} km`;
+        let distStr;
+        if (Math.abs(distDiffFeet) < 1000) {
+            distStr = `${distDiffFeet.toFixed(0)} ft`;
+        } else {
+            distStr = `${distDiffMiles.toFixed(2)} mi`;
+        }
 
         const displayEl = state.gameViewActive ? document.querySelector('#game-race-display #ghost-diff-display') : document.getElementById('ghost-diff-display');
         if (displayEl) {
             displayEl.textContent = distStr;
             // If distDiffMiles is negative, the rider is ahead of the ghost.
             displayEl.className = distDiffMiles <= 0 ? 'text-2xl font-bold text-green-400' : 'text-2xl font-bold text-red-400';
+        }
+    },
+
+    updateGhostPacerUI() {
+        const mode = state.ghostPacer.mode;
+        const speedContainer = document.getElementById('ghost-target-speed-container');
+        const powerContainer = document.getElementById('ghost-target-power-container');
+
+        if (mode === 'target_speed') {
+            speedContainer.classList.remove('hidden');
+        } else {
+            speedContainer.classList.add('hidden');
+        }
+
+        if (mode === 'target_power') {
+            powerContainer.classList.remove('hidden');
+        } else {
+            powerContainer.classList.add('hidden');
         }
     },
 
@@ -446,7 +479,7 @@ export const UIController = {
             if (distEl) {
                 const dist = state.villain.distanceToPlayer;
                 const sign = dist > 0 ? '+' : '';
-                distEl.textContent = `  ${sign}${dist.toFixed(1)} meters`;
+                distEl.textContent = `  ${sign}${dist.toFixed(0)} ft`;
             }
         } else {
             villainDisplay.classList.add('hidden');

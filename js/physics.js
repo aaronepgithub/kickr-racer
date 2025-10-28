@@ -32,34 +32,51 @@ export const PhysicsController = {
     },
 
     getGhostDistance(elapsedTime) {
-        if (!state.course.recordRun || !state.course.recordRun.checkpointTimes || state.course.recordRun.checkpointTimes.length === 0) {
-            return 0;
+        const { mode, targetSpeed, targetPower } = state.ghostPacer;
+
+        if (mode === 'off') {
+            return -1; // Indicates the ghost is off
         }
 
-        const recordTimes = [{ percent: 0, time: 0, distance: 0 }, ...state.course.recordRun.checkpointTimes];
-        let ghostSegmentIndex = recordTimes.findIndex(ct => ct.time > elapsedTime) - 1;
+        if (mode === 'record') {
+            if (!state.course.recordRun || !state.course.recordRun.checkpointTimes || state.course.recordRun.checkpointTimes.length === 0) {
+                return 0;
+            }
 
-        if (ghostSegmentIndex === -2) { // Ghost has finished
-            return state.totalDistance;
+            const recordTimes = [{ percent: 0, time: 0, distance: 0 }, ...state.course.recordRun.checkpointTimes];
+            let ghostSegmentIndex = recordTimes.findIndex(ct => ct.time > elapsedTime) - 1;
+
+            if (ghostSegmentIndex === -2) { // Ghost has finished
+                return state.totalDistance;
+            }
+            if (ghostSegmentIndex < 0) {
+                ghostSegmentIndex = 0;
+            }
+
+            const startCp = recordTimes[ghostSegmentIndex];
+            const endCp = recordTimes[ghostSegmentIndex + 1];
+            if (!endCp) return startCp.distance;
+
+            const timeInSegment = elapsedTime - startCp.time;
+            const segmentDuration = endCp.time - startCp.time;
+            const segmentDistance = endCp.distance - startCp.distance;
+
+            if (segmentDuration > 0) {
+                const progressInSegment = timeInSegment / segmentDuration;
+                return startCp.distance + (progressInSegment * segmentDistance);
+            } else {
+                return startCp.distance;
+            }
         }
-        if (ghostSegmentIndex < 0) {
-            ghostSegmentIndex = 0;
+
+        if (mode === 'target_speed') {
+            const speedMph = targetSpeed;
+            const distanceMiles = (speedMph / 3600) * elapsedTime;
+            return distanceMiles;
         }
 
-        const startCp = recordTimes[ghostSegmentIndex];
-        const endCp = recordTimes[ghostSegmentIndex + 1];
-        if (!endCp) return startCp.distance;
-
-        const timeInSegment = elapsedTime - startCp.time;
-        const segmentDuration = endCp.time - startCp.time;
-        const segmentDistance = endCp.distance - startCp.distance;
-
-        if (segmentDuration > 0) {
-            const progressInSegment = timeInSegment / segmentDuration;
-            return startCp.distance + (progressInSegment * segmentDistance);
-        } else {
-            return startCp.distance;
-        }
+        // Note: target_power is handled incrementally in the main game loop.
+        return 0;
     },
 
      parseGPX(gpxString, fileName) {
