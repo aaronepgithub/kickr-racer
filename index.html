@@ -105,6 +105,30 @@
                         </div>
                     </div>
 
+                    <!-- Ghost Pacer Settings -->
+                    <div class="mb-6 pb-6 border-b border-gray-700">
+                        <h2 class="text-2xl font-semibold mb-3">4. Ghost Pacer</h2>
+                        <div class="grid grid-cols-1 gap-4">
+                            <div>
+                                <label for="ghost-pacer-mode" class="block text-sm font-medium text-gray-300 mb-1">Pacer Mode</label>
+                                <select id="ghost-pacer-mode" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                                    <option value="off">Off</option>
+                                    <option value="record">Record Speed</option>
+                                    <option value="target_speed">Target Speed</option>
+                                    <option value="target_power">Target Power</option>
+                                </select>
+                            </div>
+                            <div id="ghost-target-speed-container" class="hidden">
+                                <label for="ghost-target-speed" class="block text-sm font-medium text-gray-300 mb-1">Target Speed (mph)</label>
+                                <input type="number" id="ghost-target-speed" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-yellow-400" value="20">
+                            </div>
+                            <div id="ghost-target-power-container" class="hidden">
+                                <label for="ghost-target-power" class="block text-sm font-medium text-gray-300 mb-1">Target Power (watts)</label>
+                                <input type="number" id="ghost-target-power" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-yellow-400" value="200">
+                            </div>
+                        </div>
+                    </div>
+
                     <button id="start-race-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg text-xl transition duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed">Start Race</button>
                 </div>
             </div>
@@ -170,7 +194,7 @@
         </div>
         <div class="bg-gray-700 p-4 rounded-lg md:col-span-1">
         <h4 class="font-semibold text-sm text-gray-400">Distance to Ghost</h4>
-         <p id="ghost-diff-display" class="text-2xl font-bold text-gray-400">0.0 km</p>
+         <p id="ghost-diff-display" class="text-2xl font-bold text-gray-400">0 ft</p>
         </div>
         <div id="villain-display" class="hidden bg-gray-800 p-4 rounded-lg md:col-span-2 border-2 border-red-500">
         <h4 id="villain-name-display" class="font-semibold text-xl text-red-400">Rouleur</h4>

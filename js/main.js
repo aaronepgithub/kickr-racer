@@ -57,8 +57,20 @@ function gameLoop() {
         }
 
         // --- Ghost Position Calculation ---
-        if (state.course.recordRun) {
-            state.ghostDistanceCovered = PhysicsController.getGhostDistance(state.elapsedTime);
+        if (state.ghostPacer.mode !== 'off') {
+            if (state.ghostPacer.mode === 'target_power') {
+                const { targetPower } = state.ghostPacer;
+                const currentPoint = PhysicsController.getPointAtDistance(state.ghostDistanceCovered);
+                const gradient = currentPoint ? currentPoint.gradient : 0;
+                const speedMps = PhysicsController.calculateSpeedMps(targetPower, gradient, state.riderWeightLbs);
+                const ghostSpeedMph = speedMps * 2.23694;
+                if (ghostSpeedMph > 0) {
+                    const distanceThisFrame = (ghostSpeedMph / 3600) * deltaTime;
+                    state.ghostDistanceCovered = Math.min(state.totalDistance, state.ghostDistanceCovered + distanceThisFrame);
+                }
+            } else {
+                state.ghostDistanceCovered = PhysicsController.getGhostDistance(state.elapsedTime);
+            }
         }
 
         // --- Villain Logic ---
@@ -91,10 +103,10 @@ function gameLoop() {
 
             // Calculate distance to player
             const distMiles = state.distanceCovered - state.villain.distanceCovered;
-            state.villain.distanceToPlayer = distMiles * 1609.34; // convert to meters
+            state.villain.distanceToPlayer = distMiles * 5280; // convert to feet
 
             // Award drafting points (tighter window and scaled rewards in simulator mode)
-            const draftWindow = state.simulator.active ? -1 : -3; // meters behind
+            const draftWindow = state.simulator.active ? -3 : -10; // feet behind
             const draftBasePoints = 10 * (state.simulator.active ? state.simulator.pointsScale : 1);
             if (state.villain.distanceToPlayer >= draftWindow && state.villain.distanceToPlayer < 0) {
                 state.points += draftBasePoints * deltaTime;
@@ -134,7 +146,7 @@ function gameLoop() {
         UIController.updateCadence(); // new: show current cadence in HUD
 
         // --- Ghost Distance Calculation ---
-        if (state.course.recordRun) {
+        if (state.ghostPacer.mode !== 'off') {
             UIController.updateGhostDistance();
         }
 
@@ -223,13 +235,13 @@ function gameLoop() {
         }
 
         // Check if the ghost has finished
-        if (state.course.recordRun && state.ghostDistanceCovered >= state.totalDistance && !state.ghostFinished) {
+        if (state.ghostPacer.mode !== 'off' && state.ghostDistanceCovered >= state.totalDistance && !state.ghostFinished) {
             state.ghostFinished = true;
             console.log("Ghost finished the race.");
         }
 
         // Check if both have finished to end the race
-        if (state.riderFinished && (state.ghostFinished || !state.course.recordRun) && !state.raceFinished) {
+        if (state.riderFinished && (state.ghostFinished || state.ghostPacer.mode === 'off') && !state.raceFinished) {
             state.raceFinished = true; // Prevent this block from running multiple times
             state.raceStarted = false;
             state.music.pause();

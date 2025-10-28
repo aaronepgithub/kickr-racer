@@ -41,6 +41,13 @@ export const state = {
     // Ghost data for comparison
     ghostDistanceCovered: 0,
 
+    // Ghost pacer
+    ghostPacer: {
+        mode: 'record', // 'off', 'record', 'target_speed', 'target_power'
+        targetSpeed: 20, // mph
+        targetPower: 200, // watts
+    },
+
     // Checkpoint tracking for the current run
     checkpointTimes: [],
     nextCheckpointIndex: 0,
