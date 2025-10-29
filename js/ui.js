@@ -32,6 +32,10 @@ export const UIController = {
         });
         document.getElementById('start-race-btn').addEventListener('click', () => this.startRace());
 
+        document.getElementById('collision-avoidance-toggle').addEventListener('change', (e) => {
+            state.simulator.collisionAvoidance.active = e.target.checked;
+        });
+
         document.getElementById('ghost-pacer-mode').addEventListener('change', (e) => {
             state.ghostPacer.mode = e.target.value;
             this.updateGhostPacerUI();
@@ -71,7 +75,10 @@ export const UIController = {
 
         document.addEventListener('keydown', (e) => {
             if (state.simulator.active) {
-                if (e.key === 'ArrowUp') {
+                if (e.key === ' ') { // Spacebar for jumping
+                    this.handleJump();
+                }
+                else if (e.key === 'ArrowUp') {
                     state.simulator.cadence = Math.min(95, state.simulator.cadence + 1);
                     document.getElementById('simulator-cadence-slider').value = state.simulator.cadence;
                     document.getElementById('sim-cadence-display').textContent = `${state.simulator.cadence} RPM`;
@@ -118,10 +125,17 @@ export const UIController = {
         state.simulator.active = !state.simulator.active;
         state.trainer.connected = state.simulator.active;
 
+        const collisionContainer = document.getElementById('collision-avoidance-container');
         if (state.simulator.active) {
             state.ergMode.active = false;
             document.getElementById('erg-mode-toggle').checked = false;
             this.updateErgModeUI();
+            collisionContainer.classList.remove('hidden');
+        } else {
+            // When simulator is deactivated, also deactivate collision avoidance
+            state.simulator.collisionAvoidance.active = false;
+            document.getElementById('collision-avoidance-toggle').checked = false;
+            collisionContainer.classList.add('hidden');
         }
 
         this.updateTrainerConnectionUI(state.trainer.connected);
@@ -803,9 +817,29 @@ export const UIController = {
         const yPercent = 1 - ((point.ele - state.gameView.minEle) / state.gameView.eleRange);
         
         let topPx = yPercent * (rect.height - padding * 2) + padding;
+
+        // Apply jump height for the rider in collision avoidance mode
+        if (id === 'rider' && state.simulator.collisionAvoidance.active) {
+            topPx -= state.simulator.collisionAvoidance.jumpHeight;
+        }
+
         topPx = Math.max(padding, Math.min(rect.height - padding, topPx));
 
         dot.style.top = `${topPx}px`;
         dot.style.left = `${leftPercent}%`;
+    },
+
+    handleJump() {
+        if (!state.simulator.collisionAvoidance.active) return;
+
+        const { jumpState } = state.simulator.collisionAvoidance;
+
+        if (jumpState === 'none') {
+            state.simulator.collisionAvoidance.jumpState = 'jump1';
+        } else if (jumpState === 'jump1') {
+            state.simulator.collisionAvoidance.jumpState = 'jump2';
+        } else if (jumpState === 'jump2') {
+            state.simulator.collisionAvoidance.jumpState = 'jump3';
+        }
     }
 };

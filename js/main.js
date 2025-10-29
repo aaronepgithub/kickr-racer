@@ -73,6 +73,29 @@ function gameLoop() {
             }
         }
 
+        // --- Jump Logic for Collision Avoidance ---
+        if (state.simulator.collisionAvoidance.active) {
+            const GRAVITY = 1000; // pixels per second squared
+
+            let { jumpHeight, jumpState } = state.simulator.collisionAvoidance;
+            const JUMP_HEIGHTS = { jump1: 50, jump2: 100, jump3: 150 };
+
+            if (jumpState.startsWith('jump')) {
+                const targetHeight = JUMP_HEIGHTS[jumpState];
+                jumpHeight += 400 * deltaTime; // Jump speed
+                if (jumpHeight >= targetHeight) {
+                    state.simulator.collisionAvoidance.jumpState = 'falling';
+                }
+            } else if (jumpState === 'falling') {
+                jumpHeight -= GRAVITY * deltaTime;
+                if (jumpHeight <= 0) {
+                    jumpHeight = 0;
+                    state.simulator.collisionAvoidance.jumpState = 'none';
+                }
+            }
+            state.simulator.collisionAvoidance.jumpHeight = jumpHeight;
+        }
+
         // --- Villain Logic ---
         const baseVillain = villains.rouleur; // For shared properties like cooldown
 
@@ -86,13 +109,19 @@ function gameLoop() {
 
                 state.villain.active = true;
                 state.villain.name = villain.name;
-                // Increase villain power slightly in simulator mode for a tougher challenge
                 const aggressiveness = state.simulator.active ? state.simulator.villainAggressiveness : 1;
                 state.villain.power = state.power + villain.powerBoost * aggressiveness;
                 state.villain.timeRemaining = villain.duration;
                 state.villain.emoji = villain.emoji;
                 state.villain.originalEmoji = villain.emoji;
-                state.villain.distanceCovered = state.distanceCovered;
+
+                if (state.simulator.collisionAvoidance.active) {
+                    // Spawn ahead of the player, moving towards them
+                    state.villain.distanceCovered = state.distanceCovered + 0.1; // Spawn 0.1 miles ahead
+                    state.villain.power *= 1.5; // Make them faster to ensure a challenge
+                } else {
+                    state.villain.distanceCovered = state.distanceCovered;
+                }
                 console.log(`A ${villain.name} appears!`);
             }
         }
@@ -106,15 +135,17 @@ function gameLoop() {
             state.villain.distanceToPlayer = distMiles * 5280; // convert to feet
 
             // Award drafting points (tighter window and scaled rewards in simulator mode)
-            const draftWindow = state.simulator.active ? -3 : -10; // feet behind
-            const draftBasePoints = 10 * (state.simulator.active ? state.simulator.pointsScale : 1);
-            if (state.villain.distanceToPlayer >= draftWindow && state.villain.distanceToPlayer < 0) {
-                state.points += draftBasePoints * deltaTime;
-                state.villain.drafting = true;
-                state.villain.emoji = '💨';
-            } else {
-                state.villain.drafting = false;
-                state.villain.emoji = state.villain.originalEmoji;
+            if (!state.simulator.collisionAvoidance.active) {
+                const draftWindow = state.simulator.active ? -3 : -10; // feet behind
+                const draftBasePoints = 10 * (state.simulator.active ? state.simulator.pointsScale : 1);
+                if (state.villain.distanceToPlayer >= draftWindow && state.villain.distanceToPlayer < 0) {
+                    state.points += draftBasePoints * deltaTime;
+                    state.villain.drafting = true;
+                    state.villain.emoji = '💨';
+                } else {
+                    state.villain.drafting = false;
+                    state.villain.emoji = state.villain.originalEmoji;
+                }
             }
 
             // Calculate villain's speed and distance
@@ -122,7 +153,11 @@ function gameLoop() {
             const villainSpeedMph = villainSpeedMps * 2.23694;
             if (villainSpeedMph > 0) {
                 const villainDistanceThisFrame = (villainSpeedMph / 3600) * deltaTime;
-                state.villain.distanceCovered += villainDistanceThisFrame;
+                if (state.simulator.collisionAvoidance.active) {
+                    state.villain.distanceCovered -= villainDistanceThisFrame; // Move left
+                } else {
+                    state.villain.distanceCovered += villainDistanceThisFrame; // Move right
+                }
             }
 
             // 3. Villain Despawning
@@ -131,6 +166,45 @@ function gameLoop() {
                 // Simulator mode spawns villains more often
                 state.villain.timeUntilNext = state.simulator.active ? getRandomInt(10, 30) : getRandomInt(15, 45);
                 console.log(`The ${state.villain.name} fades away.`);
+            }
+
+            // --- Collision Detection (in screen space) ---
+            if (state.simulator.collisionAvoidance.active && state.villain.active) {
+                const distanceBetween = Math.abs(state.distanceCovered - state.villain.distanceCovered);
+                // Adjust collision distance to be a bit more generous
+                const collisionDistance = 0.008; // miles
+
+                if (distanceBetween < collisionDistance) {
+                    const playerPoint = PhysicsController.getPointAtDistance(state.distanceCovered);
+                    const villainPoint = PhysicsController.getPointAtDistance(state.villain.distanceCovered);
+
+                    if (playerPoint && villainPoint) {
+                        const container = document.getElementById('game-course-profile');
+                        const canvas = container ? container.querySelector('canvas') : null;
+
+                        if (canvas) {
+                            const rect = canvas.getBoundingClientRect();
+                            const padding = 20;
+                            const eleRange = state.gameView.eleRange;
+                            const minEle = state.gameView.minEle;
+
+                            // Calculate player's vertical position in pixels
+                            const playerYPercent = 1 - ((playerPoint.ele - minEle) / eleRange);
+                            let playerTopPx = playerYPercent * (rect.height - padding * 2) + padding;
+                            playerTopPx -= state.simulator.collisionAvoidance.jumpHeight; // Apply jump
+
+                            // Calculate villain's vertical position in pixels
+                            const villainYPercent = 1 - ((villainPoint.ele - minEle) / eleRange);
+                            const villainTopPx = villainYPercent * (rect.height - padding * 2) + padding;
+
+                            // Check for collision (if player's bottom is below villain's top)
+                            const PLAYER_HITBOX_HEIGHT = 40; // Approximate height of the player emoji in pixels
+                            if (playerTopPx + PLAYER_HITBOX_HEIGHT > villainTopPx) {
+                                endGame();
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -262,6 +336,13 @@ function init() {
         UIController.loadCourses();
     });
     gameLoop(); // Start the loop
+}
+
+function endGame() {
+    state.raceStarted = false;
+    state.music.pause();
+    UIController.updateRaceStatus("Game Over! You crashed.");
+    // Optionally, you could show a game over screen or reset the game state
 }
 
 init();

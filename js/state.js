@@ -85,6 +85,12 @@ export const state = {
         pointsScale: 0.6,
         // Make villains more aggressive in simulator mode (>1 increases power)
         villainAggressiveness: 1.25,
+        // New Collision Avoidance Game Mode
+        collisionAvoidance: {
+            active: false,
+            jumpState: 'none', // 'none', 'jump1', 'jump2', 'jump3'
+            jumpHeight: 0, // Current jump height in pixels
+        },
     },
 
     // ERG mode
