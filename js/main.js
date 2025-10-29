@@ -78,7 +78,7 @@ function gameLoop() {
             const GRAVITY = 1000; // pixels per second squared
 
             let { jumpHeight, jumpState } = state.simulator.collisionAvoidance;
-            const JUMP_HEIGHTS = { jump1: 50, jump2: 100, jump3: 150 };
+            const JUMP_HEIGHTS = { jump1: 100, jump2: 200, jump3: 300 };
 
             if (jumpState.startsWith('jump')) {
                 const targetHeight = JUMP_HEIGHTS[jumpState];

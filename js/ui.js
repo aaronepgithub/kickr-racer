@@ -409,6 +409,33 @@ export const UIController = {
         mainContent.classList.add('hidden');
         gameView.classList.remove('hidden');
         
+        if (state.simulator.collisionAvoidance.active) {
+            const jumpControls = document.createElement('div');
+            jumpControls.id = 'jump-controls';
+            jumpControls.className = 'fixed bottom-4 left-4 z-50 flex flex-col gap-2';
+
+            const jumpButton1 = document.createElement('button');
+            jumpButton1.textContent = 'Jump 1';
+            jumpButton1.className = 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded';
+
+            const jumpButton2 = document.createElement('button');
+            jumpButton2.textContent = 'Jump 2';
+            jumpButton2.className = 'bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded';
+
+            const jumpButton3 = document.createElement('button');
+            jumpButton3.textContent = 'Jump 3';
+            jumpButton3.className = 'bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded';
+
+            jumpButton1.addEventListener('click', () => this.handleJump('jump1'));
+            jumpButton2.addEventListener('click', () => this.handleJump('jump2'));
+            jumpButton3.addEventListener('click', () => this.handleJump('jump3'));
+
+            jumpControls.appendChild(jumpButton1);
+            jumpControls.appendChild(jumpButton2);
+            jumpControls.appendChild(jumpButton3);
+            gameView.appendChild(jumpControls);
+        }
+
         if (gameView.requestFullscreen) {
             gameView.requestFullscreen().catch(err => console.error(`Fullscreen error: ${err.message}`));
         }
@@ -845,11 +872,20 @@ export const UIController = {
         dot.style.left = `${leftPercent}%`;
     },
 
-    handleJump() {
+    handleJump(jumpType) {
         if (!state.simulator.collisionAvoidance.active) return;
 
         const { jumpState } = state.simulator.collisionAvoidance;
 
+        // Button click logic: only works if on the ground
+        if (jumpType) {
+            if (jumpState === 'none') {
+                state.simulator.collisionAvoidance.jumpState = jumpType;
+            }
+            return; // Don't fall through to keyboard logic
+        }
+
+        // Keyboard logic (original)
         if (jumpState === 'none') {
             state.simulator.collisionAvoidance.jumpState = 'jump1';
         } else if (jumpState === 'jump1') {
