@@ -34,6 +34,7 @@ export const UIController = {
 
         document.getElementById('collision-avoidance-toggle').addEventListener('change', (e) => {
             state.simulator.collisionAvoidance.active = e.target.checked;
+            this.updateCollisionAvoidanceUI();
         });
 
         document.getElementById('ghost-pacer-mode').addEventListener('change', (e) => {
@@ -131,6 +132,7 @@ export const UIController = {
             document.getElementById('erg-mode-toggle').checked = false;
             this.updateErgModeUI();
             collisionContainer.classList.remove('hidden');
+            state.simulator.collisionAvoidance.active = document.getElementById('collision-avoidance-toggle').checked;
         } else {
             // When simulator is deactivated, also deactivate collision avoidance
             state.simulator.collisionAvoidance.active = false;
@@ -140,6 +142,7 @@ export const UIController = {
 
         this.updateTrainerConnectionUI(state.trainer.connected);
         this.updateStartRaceButtonState();
+        this.updateCollisionAvoidanceUI();
     },
 
     updateTrainerConnectionUI(connected) {
@@ -266,6 +269,19 @@ export const UIController = {
             wattsInputContainer.classList.remove('hidden');
         } else {
             wattsInputContainer.classList.add('hidden');
+        }
+    },
+
+    updateCollisionAvoidanceUI() {
+        const statusEl = document.getElementById('collision-avoidance-status');
+        if (state.simulator.collisionAvoidance.active) {
+            statusEl.textContent = '(On)';
+            statusEl.classList.add('text-green-400');
+            statusEl.classList.remove('text-red-400');
+        } else {
+            statusEl.textContent = '(Off)';
+            statusEl.classList.add('text-red-400');
+            statusEl.classList.remove('text-green-400');
         }
     },
 
