@@ -75,7 +75,7 @@ function gameLoop() {
 
         // --- Jump Logic for Collision Avoidance ---
         if (state.simulator.collisionAvoidance.active) {
-            const GRAVITY = 1000; // pixels per second squared
+            const GRAVITY = 600; // pixels per second squared
 
             let { jumpHeight, jumpState } = state.simulator.collisionAvoidance;
             const JUMP_HEIGHTS = { jump1: 100, jump2: 200, jump3: 300 };
@@ -164,7 +164,7 @@ function gameLoop() {
             if (state.villain.timeRemaining <= 0) {
                 state.villain.active = false;
                 // Simulator mode spawns villains more often
-                state.villain.timeUntilNext = state.simulator.active ? getRandomInt(10, 30) : getRandomInt(15, 45);
+                state.villain.timeUntilNext = state.simulator.active ? getRandomInt(5, 15) : getRandomInt(15, 45);
                 console.log(`The ${state.villain.name} fades away.`);
             }
 
