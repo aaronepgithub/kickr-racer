@@ -98,18 +98,23 @@ export const UIController = {
         this.loadCourses();
         this.updateStartRaceButtonState();
         document.addEventListener('fullscreenchange', () => {
-            if (!document.fullscreenElement && state.simulator.active) {
-                const simControls = document.getElementById('simulator-controls');
-                const slider = document.getElementById('simulator-power-slider-container');
-                if (simControls) document.body.appendChild(simControls);
-                if (slider) {
-                    // Restore original, centered bottom slider classes used in markup
-                    slider.className = 'hidden fixed bottom-10 left-1/2 transform -translate-x-1/2 w-3/4 z-50 bg-gray-800 p-4 rounded-lg';
-                    slider.style.zIndex = '';
-                    document.body.appendChild(slider);
+            if (!document.fullscreenElement) {
+                const countdown = document.getElementById('countdown-section');
+                if (countdown) document.body.appendChild(countdown);
+
+                if (state.simulator.active) {
+                    const simControls = document.getElementById('simulator-controls');
+                    const slider = document.getElementById('simulator-power-slider-container');
+                    if (simControls) document.body.appendChild(simControls);
+                    if (slider) {
+                        // Restore original, centered bottom slider classes used in markup
+                        slider.className = 'hidden fixed bottom-10 left-1/2 transform -translate-x-1/2 w-3/4 z-50 bg-gray-800 p-4 rounded-lg';
+                        slider.style.zIndex = '';
+                        document.body.appendChild(slider);
+                    }
+                    // Ensure UI visibility is consistent after restoring elements
+                    this.updateTrainerConnectionUI(state.trainer.connected);
                 }
-                // Ensure UI visibility is consistent after restoring elements
-                this.updateTrainerConnectionUI(state.trainer.connected);
             }
         });
     },
@@ -332,7 +337,7 @@ export const UIController = {
             document.getElementById('race-display').classList.remove('hidden');
         }
         document.getElementById('countdown-section').classList.remove('hidden');
-        document.getElementById('fullscreen-btn').classList.remove('hidden');
+        this.enterGameView();
         this.startCountdown();
     },
 
@@ -349,16 +354,20 @@ export const UIController = {
         canvas.className = 'w-full h-full';
         courseProfile.appendChild(canvas);
 
-    // Create a smaller HUD that stretches along the top of the screen (less intrusive font)
-    const raceDisplayClone = document.getElementById('race-display').cloneNode(true);
-    raceDisplayClone.id = 'game-race-display';
-    // Stretch along top, but use smaller spacing and font so it doesn't dominate
-    raceDisplayClone.className = 'absolute top-4 left-4 right-4 grid grid-cols-2 md:grid-cols-5 gap-2 bg-gray-900 bg-opacity-70 p-2 rounded-lg text-sm';
-        
+        // Create a smaller HUD that stretches along the top of the screen (less intrusive font)
+        const raceDisplayClone = document.getElementById('race-display').cloneNode(true);
+        raceDisplayClone.id = 'game-race-display';
+        // Stretch along top, but use smaller spacing and font so it doesn't dominate
+        raceDisplayClone.className = 'absolute top-4 left-4 right-4 grid grid-cols-2 md:grid-cols-5 gap-2 bg-gray-900 bg-opacity-70 p-2 rounded-lg text-sm';
+
         // Clean up and append
         gameView.innerHTML = '';
         gameView.appendChild(courseProfile);
         gameView.appendChild(raceDisplayClone);
+
+        // Move countdown section into game view so it is visible in fullscreen
+        const countdown = document.getElementById('countdown-section');
+        if (countdown) gameView.appendChild(countdown);
 
         if (state.simulator.active) {
             // Don't append the full simulator-controls (redundant with HUD).
@@ -372,13 +381,13 @@ export const UIController = {
                 gameView.appendChild(slider);
             }
         }
-    // Hide the redundant simulator-controls HUD while in game view (we have a compact HUD already)
-    const simControls = document.getElementById('simulator-controls');
-    if (simControls) simControls.classList.add('hidden');
+        // Hide the redundant simulator-controls HUD while in game view (we have a compact HUD already)
+        const simControls = document.getElementById('simulator-controls');
+        if (simControls) simControls.classList.add('hidden');
 
         mainContent.classList.add('hidden');
         gameView.classList.remove('hidden');
-        
+
         if (gameView.requestFullscreen) {
             gameView.requestFullscreen().catch(err => console.error(`Fullscreen error: ${err.message}`));
         }
@@ -386,9 +395,9 @@ export const UIController = {
 
     updateStartRaceButtonState() {
         const canStart = document.getElementById('racer-name-input').value.trim() !== '' &&
-                         document.getElementById('racer-weight-input').value > 0 &&
-                         state.course !== null &&
-                         (state.trainer.connected || state.powerMeter.connected);
+            document.getElementById('racer-weight-input').value > 0 &&
+            state.course !== null &&
+            (state.trainer.connected || state.powerMeter.connected);
         document.getElementById('start-race-btn').disabled = !canStart;
     },
 
@@ -580,13 +589,13 @@ export const UIController = {
         const canvas = state.gameViewActive ? document.querySelector('#game-course-profile canvas') : document.getElementById('course-profile-canvas');
         const placeholder = state.gameViewActive ? null : document.getElementById('course-profile-placeholder');
 
-        if (!canvas) return; 
+        if (!canvas) return;
 
         if (!state.gpxData || state.gpxData.length === 0) {
-            if(placeholder) placeholder.classList.remove('hidden');
+            if (placeholder) placeholder.classList.remove('hidden');
             return;
         }
-        if(placeholder) placeholder.classList.add('hidden');
+        if (placeholder) placeholder.classList.add('hidden');
 
         if (state.gameViewActive) {
             this.drawGameViewProfile(canvas);
@@ -645,22 +654,22 @@ export const UIController = {
         const { width, height } = rect;
         const padding = 20;
 
-    // Allow simulator mode to zoom in by changing the visible window
-    const viewDistance = state.simulator.active ? GAME_VIEW_DISTANCE * state.simulator.viewDistanceMultiplier : GAME_VIEW_DISTANCE;
-    const distBehind = viewDistance * (RIDER_POSITION_PERCENT / 100);
-    const distAhead = viewDistance * (1 - RIDER_POSITION_PERCENT / 100);
+        // Allow simulator mode to zoom in by changing the visible window
+        const viewDistance = state.simulator.active ? GAME_VIEW_DISTANCE * state.simulator.viewDistanceMultiplier : GAME_VIEW_DISTANCE;
+        const distBehind = viewDistance * (RIDER_POSITION_PERCENT / 100);
+        const distAhead = viewDistance * (1 - RIDER_POSITION_PERCENT / 100);
 
-    const windowStart = state.distanceCovered - distBehind;
-    const windowEnd = state.distanceCovered + distAhead;
+        const windowStart = state.distanceCovered - distBehind;
+        const windowEnd = state.distanceCovered + distAhead;
 
         const visiblePoints = state.gpxData.filter(p => p.startDistance >= windowStart - 0.1 && p.startDistance <= windowEnd + 0.1);
         if (visiblePoints.length < 2) return;
 
-    const elevations = visiblePoints.map(p => p.ele);
-    state.gameView.minEle = Math.min(...elevations);
-    // Amplify elevation range for simulator mode so hills look more dramatic
-    const baseRange = (Math.max(...elevations) - state.gameView.minEle || 1) * 2;
-    state.gameView.eleRange = state.simulator.active ? baseRange * state.simulator.elevationAmplifier : baseRange;
+        const elevations = visiblePoints.map(p => p.ele);
+        state.gameView.minEle = Math.min(...elevations);
+        // Amplify elevation range for simulator mode so hills look more dramatic
+        const baseRange = (Math.max(...elevations) - state.gameView.minEle || 1) * 2;
+        state.gameView.eleRange = state.simulator.active ? baseRange * state.simulator.elevationAmplifier : baseRange;
 
         ctx.clearRect(0, 0, width, height);
 
@@ -709,8 +718,8 @@ export const UIController = {
             if (state.course && state.course.recordRun) {
                 this._updateStaticDot('ghost', state.ghostDistanceCovered, '👻');
             } else {
-                 const ghostDot = document.getElementById('dot-ghost');
-                 if (ghostDot) ghostDot.style.display = 'none';
+                const ghostDot = document.getElementById('dot-ghost');
+                if (ghostDot) ghostDot.style.display = 'none';
             }
         }
 
@@ -760,11 +769,11 @@ export const UIController = {
         const container = document.getElementById('course-profile-container');
         if (!container || !state.gpxData || state.gpxData.length < 2) return;
         const dot = this._getDot(id, emoji, container);
-        
+
         const elevations = state.gpxData.map(p => p.ele);
         const minEle = Math.min(...elevations);
         const eleRange = Math.max(...elevations) - minEle || 1;
-        
+
         const point = PhysicsController.getPointAtDistance(distance);
         if (!point) return;
 
@@ -783,7 +792,7 @@ export const UIController = {
         if (!container || !state.gpxData || state.gpxData.length < 2) return;
         const dot = this._getDot(id, emoji, container);
 
-            const viewDistance = state.simulator.active ? GAME_VIEW_DISTANCE * state.simulator.viewDistanceMultiplier : GAME_VIEW_DISTANCE;
+        const viewDistance = state.simulator.active ? GAME_VIEW_DISTANCE * state.simulator.viewDistanceMultiplier : GAME_VIEW_DISTANCE;
         const distBehind = viewDistance * (RIDER_POSITION_PERCENT / 100);
         const windowStart = state.distanceCovered - distBehind;
 
@@ -801,7 +810,7 @@ export const UIController = {
         const rect = container.querySelector('canvas').getBoundingClientRect();
         const padding = 20;
         const yPercent = 1 - ((point.ele - state.gameView.minEle) / state.gameView.eleRange);
-        
+
         let topPx = yPercent * (rect.height - padding * 2) + padding;
         topPx = Math.max(padding, Math.min(rect.height - padding, topPx));
 
