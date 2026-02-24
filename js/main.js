@@ -53,7 +53,14 @@ function gameLoop() {
 
         if (state.speed > 0) {
             const distanceThisFrame = (state.speed / 3600) * deltaTime; // distance in miles
-            state.distanceCovered = Math.min(state.totalDistance, state.distanceCovered + distanceThisFrame);
+            state.distanceCovered += distanceThisFrame;
+
+            if (state.distanceCovered >= state.totalDistance) {
+                state.laps++;
+                state.distanceCovered -= state.totalDistance;
+                state.nextCheckpointIndex = 0; // Reset checkpoints for new lap
+                console.log(`Lap ${state.laps} started!`);
+            }
         }
 
         // --- Ghost Position Calculation ---
@@ -64,12 +71,28 @@ function gameLoop() {
                 const gradient = currentPoint ? currentPoint.gradient : 0;
                 const speedMps = PhysicsController.calculateSpeedMps(targetPower, gradient, state.riderWeightLbs);
                 const ghostSpeedMph = speedMps * 2.23694;
+                state.ghostPacer.currentSpeed = ghostSpeedMph;
                 if (ghostSpeedMph > 0) {
                     const distanceThisFrame = (ghostSpeedMph / 3600) * deltaTime;
-                    state.ghostDistanceCovered = Math.min(state.totalDistance, state.ghostDistanceCovered + distanceThisFrame);
+                    state.ghostDistanceCovered += distanceThisFrame;
+                    if (state.ghostDistanceCovered >= state.totalDistance) {
+                        state.ghostDistanceCovered -= state.totalDistance;
+                    }
+                }
+            } else if (state.ghostPacer.mode === 'target_speed') {
+                const { targetSpeed } = state.ghostPacer;
+                state.ghostPacer.currentSpeed = targetSpeed;
+                const distanceThisFrame = (targetSpeed / 3600) * deltaTime;
+                state.ghostDistanceCovered += distanceThisFrame;
+                if (state.ghostDistanceCovered >= state.totalDistance) {
+                    state.ghostDistanceCovered -= state.totalDistance;
                 }
             } else {
                 state.ghostDistanceCovered = PhysicsController.getGhostDistance(state.elapsedTime);
+                if (state.ghostDistanceCovered >= state.totalDistance) {
+                    // Logic for lapping record ghost handled inside getGhostDistance eventually, 
+                    // but for now let's just ensure it doesn't break if we check here.
+                }
             }
         }
 
@@ -101,8 +124,10 @@ function gameLoop() {
         if (state.villain.active) {
             state.villain.timeRemaining -= deltaTime;
 
-            // Calculate distance to player
-            const distMiles = state.distanceCovered - state.villain.distanceCovered;
+            // Calculate distance to player (accounting for loop)
+            let distMiles = state.distanceCovered - state.villain.distanceCovered;
+            if (distMiles > state.totalDistance / 2) distMiles -= state.totalDistance;
+            if (distMiles < -state.totalDistance / 2) distMiles += state.totalDistance;
             state.villain.distanceToPlayer = distMiles * 5280; // convert to feet
 
             // Award drafting points (tighter window and scaled rewards in simulator mode)
@@ -123,6 +148,9 @@ function gameLoop() {
             if (villainSpeedMph > 0) {
                 const villainDistanceThisFrame = (villainSpeedMph / 3600) * deltaTime;
                 state.villain.distanceCovered += villainDistanceThisFrame;
+                if (state.villain.distanceCovered >= state.totalDistance) {
+                    state.villain.distanceCovered -= state.totalDistance;
+                }
             }
 
             // 3. Villain Despawning
@@ -137,9 +165,11 @@ function gameLoop() {
         // --- UI Updates ---
         UIController.updatePower();
         UIController.updateSpeed();
+        UIController.updateTargetSpeed();
         UIController.updateDistance();
         UIController.updateElapsedTime();
         UIController.updatePoints();
+        UIController.updateLaps();
         UIController.updateRacerDots();
         UIController.updateGradient();
         UIController.updateVillainDisplay();
@@ -206,48 +236,15 @@ function gameLoop() {
                     }
                     state.lastSentAverageGradient = state.gradient;
                 }
-                
+
                 state.lastGradientUpdateTime = now;
             }
         }
 
         // --- Finish Race Logic ---
-        // Check if the rider has finished
-        if (state.distanceCovered >= state.totalDistance && !state.riderFinished) {
-            state.riderFinished = true;
-            UIController.updateRaceStatus("You've Finished! Waiting for ghost...");
-            console.log("Rider finished the race.");
-
-            const runData = {
-                runnerName: DOMElements.racerNameInput.value.trim(),
-                totalTime: state.elapsedTime,
-                checkpointTimes: state.checkpointTimes
-            };
-            FirebaseController.saveRun(state.course.id, runData);
-
-            if (!state.course.highScore || state.points > state.course.highScore.points) {
-                const highScoreData = {
-                    name: DOMElements.racerNameInput.value.trim(),
-                    points: state.points
-                };
-                FirebaseController.saveHighScore(state.course.id, highScoreData);
-            }
-        }
-
-        // Check if the ghost has finished
-        if (state.ghostPacer.mode !== 'off' && state.ghostDistanceCovered >= state.totalDistance && !state.ghostFinished) {
-            state.ghostFinished = true;
-            console.log("Ghost finished the race.");
-        }
-
-        // Check if both have finished to end the race
-        if (state.riderFinished && (state.ghostFinished || state.ghostPacer.mode === 'off') && !state.raceFinished) {
-            state.raceFinished = true; // Prevent this block from running multiple times
-            state.raceStarted = false;
-            state.music.pause();
-            UIController.updateRaceStatus("Race Complete!");
-            console.log("Race complete! Notification should be visible.");
-        }
+        // Automatic finishing has been removed - user must press "End Ride" button.
+        // We still save progress at checkpoints if needed, but not necessarily on finish automatically.
+        // Checkpoint logic still works for each lap as nextCheckpointIndex is reset.
 
     }
 

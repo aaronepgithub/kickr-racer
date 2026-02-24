@@ -35,13 +35,18 @@ export const UIController = {
         document.getElementById('ghost-pacer-mode').addEventListener('change', (e) => {
             state.ghostPacer.mode = e.target.value;
             this.updateGhostPacerUI();
+            this.updateTargetSpeed();
         });
         document.getElementById('ghost-target-speed').addEventListener('input', (e) => {
             state.ghostPacer.targetSpeed = parseFloat(e.target.value);
+            this.updateTargetSpeed();
         });
         document.getElementById('ghost-target-power').addEventListener('input', (e) => {
             state.ghostPacer.targetPower = parseInt(e.target.value, 10);
+            this.updateTargetSpeed();
         });
+
+        document.getElementById('end-ride-btn').addEventListener('click', () => this.finishRace());
 
         document.getElementById('erg-mode-toggle').addEventListener('change', (e) => {
             state.ergMode.active = e.target.checked;
@@ -365,6 +370,12 @@ export const UIController = {
         gameView.appendChild(courseProfile);
         gameView.appendChild(raceDisplayClone);
 
+        // Re-attach listener to the cloned end-ride button in Game View
+        const endBtnClone = raceDisplayClone.querySelector('#end-ride-btn');
+        if (endBtnClone) {
+            endBtnClone.addEventListener('click', () => this.finishRace());
+        }
+
         // Move countdown section into game view so it is visible in fullscreen
         const countdown = document.getElementById('countdown-section');
         if (countdown) gameView.appendChild(countdown);
@@ -515,20 +526,98 @@ export const UIController = {
         this.updateRaceInfo('#speed-display', `${state.speed.toFixed(1)} mph`);
     },
     updateTargetSpeed() {
-        if (state.simulator.active) {
+        if (state.ghostPacer.mode === 'target_speed') {
+            this.updateRaceInfo('#target-speed-label', 'Target Speed');
+            this.updateRaceInfo('#target-speed-display', `${state.ghostPacer.targetSpeed.toFixed(1)} mph`);
+        } else if (state.ghostPacer.mode === 'record') {
+            const speed = state.ghostPacer.currentSpeed || 0;
+            this.updateRaceInfo('#target-speed-label', 'Ghost Speed');
+            this.updateRaceInfo('#target-speed-display', `${speed.toFixed(1)} mph`);
+        } else if (state.ghostPacer.mode === 'target_power') {
+            this.updateRaceInfo('#target-speed-label', 'Target Power');
+            this.updateRaceInfo('#target-speed-display', `${state.ghostPacer.targetPower} W`);
+        } else if (state.simulator.active) {
+            this.updateRaceInfo('#target-speed-label', 'Target Speed');
             this.updateRaceInfo('#target-speed-display', `${state.simulator.targetSpeed.toFixed(1)} mph`);
         } else {
+            this.updateRaceInfo('#target-speed-label', 'Target Speed');
             this.updateRaceInfo('#target-speed-display', 'N/A');
         }
     },
     updateDistance() {
         this.updateRaceInfo('#distance-display', `${state.distanceCovered.toFixed(2)} mi`);
     },
+    updateLaps() {
+        this.updateRaceInfo('#lap-display', state.laps);
+    },
     updateGradient() {
         this.updateRaceInfo('#gradient-display', `${state.gradient.toFixed(1)} %`);
     },
     updateElapsedTime() {
         this.updateRaceInfo('#elapsed-time-display', this.formatTime(state.elapsedTime));
+    },
+
+    finishRace() {
+        if (!state.raceStarted) return;
+
+        if (confirm("Are you sure you want to end your ride?")) {
+            const userName = document.getElementById('racer-name-input').value.trim() || 'Anonymous';
+
+            // Save final run data
+            const runData = {
+                runnerName: userName,
+                totalTime: state.elapsedTime,
+                checkpointTimes: state.checkpointTimes,
+                totalDistance: (state.laps - 1) * state.totalDistance + state.distanceCovered,
+                laps: state.laps
+            };
+            FirebaseController.saveRun(state.course.id, runData);
+
+            // Save High Score
+            if (!state.course.highScore || state.points > state.course.highScore.points) {
+                const highScoreData = {
+                    name: userName,
+                    points: state.points
+                };
+                FirebaseController.saveHighScore(state.course.id, highScoreData);
+            }
+
+            state.riderFinished = true;
+            state.ghostFinished = true;
+            state.raceFinished = true;
+            state.raceStarted = false;
+            state.music.pause();
+            this.updateRaceStatus("Ride Complete!");
+
+            // Exit fullscreen if active
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(err => console.error(`Error exiting fullscreen: ${err.message}`));
+            }
+
+            // Return to main screen after 3 seconds
+            setTimeout(() => {
+                state.gameViewActive = false;
+                document.getElementById('game-view').classList.add('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+                document.getElementById('pre-race-setup').classList.remove('hidden');
+                document.getElementById('race-display').classList.add('hidden');
+
+                // Reset race state for next run
+                state.distanceCovered = 0;
+                state.ghostDistanceCovered = 0;
+                state.elapsedTime = 0;
+                state.points = 0;
+                state.laps = 1;
+                state.checkpointTimes = [];
+                state.nextCheckpointIndex = 0;
+                state.riderFinished = false;
+                state.ghostFinished = false;
+                state.raceFinished = false;
+
+                this.updateRaceStatus("Waiting to start...");
+                this.drawCourseProfile();
+            }, 3000);
+        }
     },
 
     updatePoints() {

@@ -22,6 +22,7 @@ export const state = {
     points: 0,
     pointsMultiplier: 1,
     lastPointsUpdateTime: 0,
+    laps: 1,
 
     // Race state
     raceStarted: false,
@@ -46,6 +47,7 @@ export const state = {
         mode: 'record', // 'off', 'record', 'target_speed', 'target_power'
         targetSpeed: 20, // mph
         targetPower: 200, // watts
+        currentSpeed: 0, // current instantaneous speed (for record mode)
     },
 
     // Checkpoint tracking for the current run

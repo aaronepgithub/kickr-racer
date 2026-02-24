@@ -21,7 +21,7 @@ export const PhysicsController = {
         const segmentDist = p2.startDistance - p1.startDistance;
         const distIntoSegment = currentPos - p1.startDistance;
         const percentIntoSegment = segmentDist > 0 ? distIntoSegment / segmentDist : 0;
-        
+
         const interpolatedEle = p1.ele + (p2.ele - p1.ele) * percentIntoSegment;
         const interpolatedGradient = p1.gradient + (p2.gradient - p1.gradient) * percentIntoSegment;
 
@@ -39,47 +39,62 @@ export const PhysicsController = {
         }
 
         if (mode === 'record') {
-            if (!state.course.recordRun || !state.course.recordRun.checkpointTimes || state.course.recordRun.checkpointTimes.length === 0) {
+            const run = state.course.recordRun;
+            if (!run || !run.totalTime || run.totalTime <= 0) {
+                state.ghostPacer.currentSpeed = 0;
                 return 0;
             }
 
-            const recordTimes = [{ percent: 0, time: 0, distance: 0 }, ...state.course.recordRun.checkpointTimes];
-            let ghostSegmentIndex = recordTimes.findIndex(ct => ct.time > elapsedTime) - 1;
+            // Construct full timeline for interpolation
+            const checkpoints = run.checkpointTimes || [];
+            const timeline = [{ time: 0, distance: 0 }, ...checkpoints];
 
-            if (ghostSegmentIndex === -2) { // Ghost has finished
-                return state.totalDistance;
+            // Add final point if not present
+            const lastPoint = timeline[timeline.length - 1];
+            if (lastPoint.time < run.totalTime) {
+                timeline.push({ time: run.totalTime, distance: state.totalDistance });
             }
-            if (ghostSegmentIndex < 0) {
-                ghostSegmentIndex = 0;
+
+            const recordDuration = run.totalTime;
+            const loopTime = elapsedTime % recordDuration;
+
+            // Find segment
+            let segmentIndex = timeline.findIndex(pt => pt.time > loopTime) - 1;
+            if (segmentIndex < 0) segmentIndex = 0;
+
+            const startPt = timeline[segmentIndex];
+            const endPt = timeline[segmentIndex + 1];
+
+            if (!endPt) {
+                state.ghostPacer.currentSpeed = 0;
+                return startPt.distance;
             }
 
-            const startCp = recordTimes[ghostSegmentIndex];
-            const endCp = recordTimes[ghostSegmentIndex + 1];
-            if (!endCp) return startCp.distance;
+            const segmentTime = endPt.time - startPt.time;
+            const segmentDist = endPt.distance - startPt.distance;
 
-            const timeInSegment = elapsedTime - startCp.time;
-            const segmentDuration = endCp.time - startCp.time;
-            const segmentDistance = endCp.distance - startCp.distance;
-
-            if (segmentDuration > 0) {
-                const progressInSegment = timeInSegment / segmentDuration;
-                return startCp.distance + (progressInSegment * segmentDistance);
+            if (segmentTime > 0) {
+                const ratio = (loopTime - startPt.time) / segmentTime;
+                state.ghostPacer.currentSpeed = (segmentDist / segmentTime) * 3600; // mph
+                return startPt.distance + (ratio * segmentDist);
             } else {
-                return startCp.distance;
+                state.ghostPacer.currentSpeed = 0;
+                return startPt.distance;
             }
         }
 
         if (mode === 'target_speed') {
-            const speedMph = targetSpeed;
-            const distanceMiles = (speedMph / 3600) * elapsedTime;
-            return distanceMiles;
+            state.ghostPacer.currentSpeed = targetSpeed;
+        } else if (mode === 'target_power') {
+            // Target power speed is calculated in main loop, we'll set it there if needed or just let it be.
+            // For target_power, currentSpeed is updated in main.js
         }
 
-        // Note: target_power is handled incrementally in the main game loop.
+        // Note: target_speed and target_power are handled incrementally in the main game loop.
         return 0;
     },
 
-     parseGPX(gpxString, fileName) {
+    parseGPX(gpxString, fileName) {
 
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(gpxString, "text/xml");
@@ -102,7 +117,7 @@ export const PhysicsController = {
 
             const ele = trkpts[i].getElementsByTagName("ele")[0];
             if (ele) {
-                 points.push({
+                points.push({
                     lat: parseFloat(trkpts[i].getAttribute("lat")),
                     lon: parseFloat(trkpts[i].getAttribute("lon")),
                     ele: parseFloat(ele.textContent)
@@ -115,7 +130,7 @@ export const PhysicsController = {
 
         for (let i = 0; i < points.length - 1; i++) {
             const p1 = points[i];
-            const p2 = points[i+1];
+            const p2 = points[i + 1];
             const distanceKm = this.haversineDistance(p1, p2);
             const elevationChangeM = p2.ele - p1.ele;
             let gradient = (distanceKm > 0) ? (elevationChangeM / (distanceKm * 1000)) * 100 : 0;
@@ -137,7 +152,7 @@ export const PhysicsController = {
                 startDistance: totalDistanceKm * 0.621371,
                 distance: 0,
                 gradient: 0,
-                ele: points[points.length-1].ele
+                ele: points[points.length - 1].ele
             });
         }
 
@@ -146,7 +161,7 @@ export const PhysicsController = {
         const checkpointInterval = 0.1; // miles
         if (totalDistanceMiles > 0) {
             for (let d = checkpointInterval; d < totalDistanceMiles; d += checkpointInterval) {
-                 checkpoints.push({
+                checkpoints.push({
                     percent: d / totalDistanceMiles,
                     distance: d,
                 });
@@ -166,8 +181,8 @@ export const PhysicsController = {
         const dLat = (p2.lat - p1.lat) * Math.PI / 180;
         const dLon = (p2.lon - p1.lon) * Math.PI / 180;
         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                  Math.cos(p1.lat * Math.PI / 180) * Math.cos(p2.lat * Math.PI / 180) *
-                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            Math.cos(p1.lat * Math.PI / 180) * Math.cos(p2.lat * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     },
