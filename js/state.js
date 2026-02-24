@@ -54,6 +54,10 @@ export const state = {
     checkpointTimes: [],
     nextCheckpointIndex: 0,
 
+    // Per-lap telemetry for accurate record calculation
+    lapTimes: [], // elapsedTime at the end of each completed lap
+    lapCheckpointTimes: [[]], // array of arrays: checkpoint times for each lap
+
     // Trainer connection
     trainer: {
         device: null,

@@ -79,19 +79,49 @@ export const FirebaseController = {
             const courseData = courseSnap.data();
             const currentRecord = courseData.recordRun;
 
-            if (!currentRecord || runData.totalTime < currentRecord.totalTime) {
-                // New record!
-                await updateDoc(courseRef, {
-                    recordRun: {
-                        runnerName: runData.runnerName,
-                        totalTime: runData.totalTime,
-                        checkpointTimes: runData.checkpointTimes,
-                        achievedAt: serverTimestamp(),
-                    }
+            // Only consider completed laps for record qualification
+            const lapTimes = runData.lapTimes || [];
+            const lapCheckpointTimes = runData.lapCheckpointTimes || [];
+            if (lapTimes.length > 0) {
+                // Compute individual lap durations
+                const lapDurations = lapTimes.map((endTime, idx) => {
+                    const startTime = idx === 0 ? 0 : lapTimes[idx - 1];
+                    return endTime - startTime;
                 });
-                console.log("New record set for course:", courseId);
-                console.log(runData.runnerName);
-                // UIController.displayRecordTimes(runData.runnerName);
+
+                // Find fastest completed lap
+                let fastestIdx = 0;
+                let fastestDuration = lapDurations[0];
+                for (let i = 1; i < lapDurations.length; i++) {
+                    if (lapDurations[i] < fastestDuration) {
+                        fastestDuration = lapDurations[i];
+                        fastestIdx = i;
+                    }
+                }
+
+                // Normalize checkpoint times to lap-relative times for the fastest lap
+                const lapStartTime = fastestIdx === 0 ? 0 : lapTimes[fastestIdx - 1];
+                const recordCheckpointTimes = (lapCheckpointTimes[fastestIdx] || []).map(cp => ({
+                    percent: cp.percent,
+                    time: cp.time - lapStartTime,
+                    distance: cp.distance
+                }));
+
+                if (!currentRecord || fastestDuration < currentRecord.totalTime) {
+                    // New record based on fastest completed lap
+                    await updateDoc(courseRef, {
+                        recordRun: {
+                            runnerName: runData.runnerName,
+                            totalTime: fastestDuration,
+                            checkpointTimes: recordCheckpointTimes,
+                            achievedAt: serverTimestamp(),
+                        }
+                    });
+                    console.log("New record set for course:", courseId);
+                }
+            } else {
+                // No completed laps; do not consider for record
+                // Optionally: log or ignore
             }
         } catch (e) {
             console.error("Error saving run: ", e);

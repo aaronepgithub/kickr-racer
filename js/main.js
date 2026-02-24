@@ -56,6 +56,13 @@ function gameLoop() {
             state.distanceCovered += distanceThisFrame;
 
             if (state.distanceCovered >= state.totalDistance) {
+                // Record the completed lap time (elapsedTime at moment of completion)
+                state.lapTimes.push(state.elapsedTime);
+
+                // Prepare storage for the next lap's checkpoint times
+                if (!Array.isArray(state.lapCheckpointTimes)) state.lapCheckpointTimes = [];
+                state.lapCheckpointTimes.push([]);
+
                 state.laps++;
                 state.distanceCovered -= state.totalDistance;
                 state.nextCheckpointIndex = 0; // Reset checkpoints for new lap
@@ -183,11 +190,21 @@ function gameLoop() {
         // --- Checkpoint Logic for saving the run ---
         const nextCheckpoint = state.course.checkpoints[state.nextCheckpointIndex];
         if (nextCheckpoint && state.distanceCovered >= nextCheckpoint.distance) {
-            state.checkpointTimes.push({
+            const cp = {
                 percent: nextCheckpoint.percent,
                 time: state.elapsedTime,
                 distance: nextCheckpoint.distance
-            });
+            };
+            state.checkpointTimes.push(cp);
+
+            // Also record this checkpoint for the current lap (last array in lapCheckpointTimes)
+            if (!Array.isArray(state.lapCheckpointTimes) || state.lapCheckpointTimes.length === 0) {
+                state.lapCheckpointTimes = [[]];
+            }
+            const currentLapIndex = state.lapCheckpointTimes.length - 1;
+            if (!state.lapCheckpointTimes[currentLapIndex]) state.lapCheckpointTimes[currentLapIndex] = [];
+            state.lapCheckpointTimes[currentLapIndex].push(cp);
+
             state.nextCheckpointIndex++;
         }
 

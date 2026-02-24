@@ -2,6 +2,7 @@ import { state } from './state.js';
 import { BluetoothController } from './bluetooth.js';
 import { FirebaseController } from './firebase.js';
 import { PhysicsController } from './physics.js';
+import { generateGPX, downloadGPX } from './gpx.js';
 
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -337,6 +338,11 @@ export const UIController = {
         if (!state.simulator.active) {
             BluetoothController.reset();
         }
+        // Reset run-specific telemetry
+        state.checkpointTimes = [];
+        state.lapTimes = [];
+        state.lapCheckpointTimes = [[]];
+        state.nextCheckpointIndex = 0;
         document.getElementById('pre-race-setup').classList.add('hidden');
         if (!state.gameViewActive) {
             document.getElementById('race-display').classList.remove('hidden');
@@ -568,10 +574,25 @@ export const UIController = {
                 runnerName: userName,
                 totalTime: state.elapsedTime,
                 checkpointTimes: state.checkpointTimes,
+                lapTimes: state.lapTimes,
+                lapCheckpointTimes: state.lapCheckpointTimes,
                 totalDistance: (state.laps - 1) * state.totalDistance + state.distanceCovered,
                 laps: state.laps
             };
             FirebaseController.saveRun(state.course.id, runData);
+
+            // Generate and download a GPX file for this run so the user can import it elsewhere
+            try {
+                if (state.gpxData && state.gpxData.length) {
+                    const gpxString = generateGPX(runData, state.gpxData, { name: `${userName} - ${state.course ? state.course.name : 'course'}`, courseDistance: state.totalDistance });
+                    const safeUser = (userName || 'rider').replace(/\s+/g, '_');
+                    const safeCourse = (state.course && state.course.name) ? state.course.name.replace(/\s+/g, '_') : 'course';
+                    const filename = `${safeUser}-${safeCourse}-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.gpx`;
+                    downloadGPX(gpxString, filename);
+                }
+            } catch (err) {
+                console.error('GPX export failed:', err);
+            }
 
             // Save High Score
             if (!state.course.highScore || state.points > state.course.highScore.points) {
@@ -799,12 +820,13 @@ export const UIController = {
     updateRacerDots() {
         if (state.gameViewActive) {
             this._updateGameViewDot('rider', state.distanceCovered, '🚴');
-            if (state.course && state.course.recordRun) {
+            // Show ghost dot whenever a ghost pacer is active (record, target_speed, or target_power)
+            if (state.ghostPacer && state.ghostPacer.mode && state.ghostPacer.mode !== 'off' && state.gpxData && state.gpxData.length) {
                 this._updateGameViewDot('ghost', state.ghostDistanceCovered, '👻');
             }
         } else {
             this._updateStaticDot('rider', state.distanceCovered, '🚴');
-            if (state.course && state.course.recordRun) {
+            if (state.ghostPacer && state.ghostPacer.mode && state.ghostPacer.mode !== 'off' && state.gpxData && state.gpxData.length) {
                 this._updateStaticDot('ghost', state.ghostDistanceCovered, '👻');
             } else {
                 const ghostDot = document.getElementById('dot-ghost');
